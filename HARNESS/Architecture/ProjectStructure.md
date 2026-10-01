@@ -68,6 +68,7 @@ This file is the **navigation index** for all guides inside the `HARNESS/` direc
   - `js/utils/sanitizer.js` — Sanitização XSS, máscaras e formatações
   - `js/utils/clipboard.js` — Cópia universal cross-platform (iOS, Android, Windows, Mac, Linux)
   - `js/utils/qrScanner.js` — Leitor de QR Code via câmera do dispositivo
+  - `js/utils/icons.js` — Sistema centralizado de ícones vetoriais lineares (SVGs austeros)
   - `js/views/sessionModal.js` — Seleção de contexto por sessão (Evento + Serviço)
   - `js/views/visitorView.js` — Tela 1: Cadastro de Visitantes
   - `js/views/eventView.js` — Tela 2: Gestão de Eventos

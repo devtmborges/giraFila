@@ -5,6 +5,7 @@
 
 import { ERROR_CATALOG } from '../constants/errors.js';
 import { logAudit } from './auditService.js';
+import { getIcon } from '../utils/icons.js';
 
 let toastContainerElement = null;
 
@@ -118,7 +119,8 @@ export function showErrorModal(errorCode, customDetails = null) {
       <div class="modal-dialog confirm" role="alertdialog" aria-modal="true">
         <div class="modal-header">
           <h3 class="card-title" style="color: var(--color-danger); display: flex; align-items: center; gap: 8px;">
-            ⚠️ Atenção
+            ${getIcon('alertTriangle', 20)}
+            <span>Atenção</span>
           </h3>
         </div>
         <div class="modal-body">

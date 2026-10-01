@@ -7,6 +7,7 @@ import { createEvent, getAllEvents, updateEvent, deleteEvent } from '../services
 import { sanitizeText, capitalizeWords, formatUtcDisplayDate } from '../utils/sanitizer.js';
 import { showToast, showSuccess, showErrorModal } from '../services/errorHandler.js';
 import { getSession, openSessionModal, clearSessionIfMatches, updateSessionNames } from './sessionModal.js';
+import { getIcon } from '../utils/icons.js';
 
 export function initEventView() {
   const form = document.getElementById('eventForm');
@@ -129,9 +130,10 @@ export function initEventView() {
       <div class="modal-dialog" role="dialog" aria-modal="true" style="z-index: var(--z-modal-primary);">
         <div class="modal-header">
           <h3 class="card-title" style="display: flex; align-items: center; gap: 8px;">
-            ✏️ Editar Evento
+            ${getIcon('pencil', 18)}
+            <span>Editar Evento</span>
           </h3>
-          <button type="button" class="btn-icon" id="btnEditEventClose" aria-label="Fechar" style="border:none; background:transparent; font-size:18px;">✕</button>
+          <button type="button" class="btn-icon" id="btnEditEventClose" aria-label="Fechar" style="border:none; background:transparent;">${getIcon('close', 18)}</button>
         </div>
         <form id="editEventModalForm">
           <div class="modal-body">
@@ -224,7 +226,8 @@ export function initEventView() {
       <div class="modal-dialog confirm" role="alertdialog" aria-modal="true">
         <div class="modal-header">
           <h3 class="card-title" style="color: var(--color-danger); display: flex; align-items: center; gap: 8px;">
-            🗑️ Excluir Evento
+            ${getIcon('trash', 18)}
+            <span>Excluir Evento</span>
           </h3>
         </div>
         <div class="modal-body">
@@ -285,17 +288,17 @@ export function initEventView() {
               ${escapeHtml(ev.name)} ${activeBadge}
             </div>
             <div class="data-item-meta">
-              <span>📅 ${formatUtcDisplayDate(ev.date)}</span>
-              <span>📍 ${escapeHtml(ev.location)}</span>
+              <span>${getIcon('calendar', 13)} ${formatUtcDisplayDate(ev.date)}</span>
+              <span>${getIcon('mapPin', 13)} ${escapeHtml(ev.location)}</span>
             </div>
             ${ev.description ? `<p style="font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: 4px;">${escapeHtml(ev.description)}</p>` : ''}
           </div>
           <div class="data-item-actions">
             <button type="button" class="btn-icon" data-action="edit-event" data-id="${ev.id}" title="Editar evento" aria-label="Editar evento">
-              ✏️
+              ${getIcon('pencil', 16)}
             </button>
             <button type="button" class="btn-icon btn-icon-danger" data-action="delete-event" data-id="${ev.id}" title="Excluir evento" aria-label="Excluir evento">
-              🗑️
+              ${getIcon('trash', 16)}
             </button>
           </div>
         </div>

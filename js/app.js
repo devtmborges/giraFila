@@ -12,6 +12,7 @@ import { initAttendanceView } from './views/attendanceView.js';
 import { initDashboardView } from './views/dashboardView.js';
 import { copyTextToClipboard } from './utils/clipboard.js';
 import { showToast, showSuccess } from './services/errorHandler.js';
+import { getIcon } from './utils/icons.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   // 1. Initialize IndexedDB schema
@@ -64,6 +65,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       switchTab(tabId);
     });
   });
+
+  // Default initial screen is Attendance
+  switchTab('tabAttendance');
 
   // 4. Session Change Listener
   onSessionChange((session) => {
@@ -135,7 +139,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (success) {
         if (btnCopyLanUrl) {
           const originalText = btnCopyLanUrl.innerHTML;
-          btnCopyLanUrl.innerHTML = '✅ Endereço Copiado!';
+          btnCopyLanUrl.innerHTML = getIcon('check', 16) + ' <span>Endereço Copiado!</span>';
           btnCopyLanUrl.classList.add('btn-primary');
           btnCopyLanUrl.classList.remove('btn-secondary');
           setTimeout(() => {

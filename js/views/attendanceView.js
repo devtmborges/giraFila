@@ -18,6 +18,7 @@ import { parseQrTicketNumber, formatUtcDisplayDateTime } from '../utils/sanitize
 import { showToast, showSuccess, showErrorModal } from '../services/errorHandler.js';
 import { startQrScanner, stopQrScanner } from '../utils/qrScanner.js';
 import { filterVisitorsByFamilyGroup } from '../utils/familySearch.js';
+import { getIcon } from '../utils/icons.js';
 
 export function initAttendanceView() {
   const form = document.getElementById('attendanceForm');
@@ -87,21 +88,21 @@ export function initAttendanceView() {
     if (isScanning) {
       stopQrScanner();
       scannerContainer.classList.remove('active');
-      btnScanQr.textContent = '📷 Escanear Câmera';
+      btnScanQr.innerHTML = getIcon('camera', 14) + ' <span>Escanear Câmera</span>';
     } else {
       const isLive = await startQrScanner(scannerVideo, scannerContainer, (detectedTicket) => {
         inputQr.value = detectedTicket;
         scannerContainer.classList.remove('active');
-        btnScanQr.textContent = '📷 Escanear Câmera';
+        btnScanQr.innerHTML = getIcon('camera', 14) + ' <span>Escanear Câmera</span>';
         inputQr.dispatchEvent(new Event('input'));
         showSuccess(`Ticket #${detectedTicket} detectado com sucesso!`);
       });
 
       if (isLive) {
-        btnScanQr.textContent = '⏹️ Parar Câmera';
+        btnScanQr.innerHTML = getIcon('square', 14) + ' <span>Parar Câmera</span>';
       } else {
         scannerContainer.classList.remove('active');
-        btnScanQr.textContent = '📷 Escanear Câmera';
+        btnScanQr.innerHTML = getIcon('camera', 14) + ' <span>Escanear Câmera</span>';
       }
     }
   });
@@ -110,7 +111,7 @@ export function initAttendanceView() {
     btnCloseScanner.addEventListener('click', () => {
       stopQrScanner();
       scannerContainer.classList.remove('active');
-      btnScanQr.textContent = '📷 Escanear Câmera';
+      btnScanQr.innerHTML = getIcon('camera', 14) + ' <span>Escanear Câmera</span>';
     });
   }
 
@@ -180,7 +181,7 @@ export function initAttendanceView() {
         visitor_qr_code: qrCode
       });
 
-      showSuccess(`✅ Atendimento CONFIRMADO para ${visitor.name} (Ticket #${qrCode})!`, 4000);
+      showSuccess(`Atendimento CONFIRMADO para ${visitor.name} (Ticket #${qrCode})!`, 4000);
 
       // Reset
       inputQr.value = '';
@@ -224,7 +225,8 @@ export function initAttendanceView() {
       <div class="modal-dialog confirm" role="alertdialog" aria-modal="true">
         <div class="modal-header">
           <h3 class="card-title" style="color: var(--color-danger); display: flex; align-items: center; gap: 8px;">
-            🗑️ Excluir Atendimento
+            ${getIcon('trash', 18)}
+            <span>Excluir Atendimento</span>
           </h3>
         </div>
         <div class="modal-body">
@@ -287,13 +289,13 @@ export function initAttendanceView() {
               <strong>#${att.visitor_qr_code}</strong> — ${escapeHtml(name)} ${typeBadge} ${extraInfo}
             </div>
             <div class="data-item-meta">
-              <span>🕒 ${formatUtcDisplayDateTime(att.created_at)}</span>
+              <span>${getIcon('clock', 13)} ${formatUtcDisplayDateTime(att.created_at)}</span>
               <span class="badge badge-done">Atendido</span>
             </div>
           </div>
           <div class="data-item-actions">
             <button type="button" class="btn-icon btn-icon-danger" data-action="delete-attendance" data-id="${att.id}" title="Excluir atendimento" aria-label="Excluir atendimento">
-              🗑️
+              ${getIcon('trash', 16)}
             </button>
           </div>
         </div>

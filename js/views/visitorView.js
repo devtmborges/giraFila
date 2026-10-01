@@ -9,6 +9,7 @@ import { sanitizeText, capitalizeWords, formatPhoneNumber, parseQrTicketNumber }
 import { showToast, showSuccess, showErrorModal } from '../services/errorHandler.js';
 import { openNativeCamera } from '../utils/qrScanner.js';
 import { filterVisitorsByFamilyGroup } from '../utils/familySearch.js';
+import { getIcon } from '../utils/icons.js';
 
 export function initVisitorView() {
   const form = document.getElementById('visitorForm');
@@ -133,15 +134,15 @@ export function initVisitorView() {
     guardianSearchTimeout = setTimeout(async () => {
       const guardian = await getVisitorByQrAndEvent(qrVal, session.eventId);
       if (!guardian) {
-        guardianInfo.textContent = '❌ Nenhum participante encontrado com este QR no evento atual.';
+        guardianInfo.innerHTML = getIcon('alertTriangle', 14) + ' <span>Nenhum participante encontrado com este QR no evento atual.</span>';
         guardianInfo.className = 'form-error-msg visible';
         inputGuardianQr.classList.add('has-error');
       } else if (guardian.is_child) {
-        guardianInfo.textContent = '❌ O ticket pertence a uma criança. O responsável deve ser um adulto.';
+        guardianInfo.innerHTML = getIcon('alertTriangle', 14) + ' <span>O ticket pertence a uma criança. O responsável deve ser um adulto.</span>';
         guardianInfo.className = 'form-error-msg visible';
         inputGuardianQr.classList.add('has-error');
       } else {
-        guardianInfo.textContent = `✅ Adulto Responsável: ${guardian.name}`;
+        guardianInfo.innerHTML = getIcon('check', 14) + ` <span>Adulto Responsável: ${escapeHtml(guardian.name)}</span>`;
         guardianInfo.className = 'form-error-msg visible';
         guardianInfo.style.color = 'var(--color-accent)';
         inputGuardianQr.classList.remove('has-error');
@@ -336,9 +337,10 @@ export function initVisitorView() {
       <div class="modal-dialog" role="dialog" aria-modal="true" style="z-index: var(--z-modal-primary);">
         <div class="modal-header">
           <h3 class="card-title" style="display: flex; align-items: center; gap: 8px;">
-            ✏️ Editar Participante
+            ${getIcon('pencil', 18)}
+            <span>Editar Participante</span>
           </h3>
-          <button type="button" class="btn-icon" id="btnEditVisitorClose" aria-label="Fechar" style="border:none; background:transparent; font-size:18px;">✕</button>
+          <button type="button" class="btn-icon" id="btnEditVisitorClose" aria-label="Fechar" style="border:none; background:transparent;">${getIcon('close', 18)}</button>
         </div>
         <form id="editVisitorModalForm">
           <div class="modal-body">
@@ -482,7 +484,8 @@ export function initVisitorView() {
       <div class="modal-dialog confirm" role="alertdialog" aria-modal="true">
         <div class="modal-header">
           <h3 class="card-title" style="color: var(--color-danger); display: flex; align-items: center; gap: 8px;">
-            🗑️ Excluir Participante
+            ${getIcon('trash', 18)}
+            <span>Excluir Participante</span>
           </h3>
         </div>
         <div class="modal-body">
@@ -548,10 +551,10 @@ export function initVisitorView() {
           </div>
           <div class="data-item-actions">
             <button type="button" class="btn-icon" data-action="edit-visitor" data-id="${v.id}" title="Editar participante" aria-label="Editar participante">
-              ✏️
+              ${getIcon('pencil', 16)}
             </button>
             <button type="button" class="btn-icon btn-icon-danger" data-action="delete-visitor" data-id="${v.id}" title="Excluir participante" aria-label="Excluir participante">
-              🗑️
+              ${getIcon('trash', 16)}
             </button>
           </div>
         </div>

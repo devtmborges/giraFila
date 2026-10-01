@@ -5,6 +5,7 @@
 
 import { getAllEvents, getServicesByEventId, getEventById, getServiceById } from '../services/storageService.js';
 import { showToast } from '../services/errorHandler.js';
+import { getIcon } from '../utils/icons.js';
 
 let currentSession = {
   eventId: null,
@@ -146,8 +147,10 @@ export async function openSessionModal(forced = false, focusField = null) {
   }
 
   if (events.length === 0) {
-    sessionWarning.innerHTML = '⚠️ Não há nenhum evento cadastrado ainda. Vá até a aba <strong>Eventos</strong> para criar o primeiro evento.';
-    sessionWarning.style.display = 'block';
+    sessionWarning.innerHTML = getIcon('alertTriangle', 18, 'text-warning') + ' <span>Não há nenhum evento cadastrado ainda. Vá até a aba <strong>Eventos</strong> para criar o primeiro evento.</span>';
+    sessionWarning.style.display = 'flex';
+    sessionWarning.style.alignItems = 'center';
+    sessionWarning.style.gap = '8px';
   } else {
     sessionWarning.style.display = 'none';
   }

@@ -7,6 +7,7 @@ import { createService, getAllEvents, getAllServices, getEventById, updateServic
 import { sanitizeText, capitalizeWords, formatUtcDisplayDate } from '../utils/sanitizer.js';
 import { showToast, showSuccess, showErrorModal } from '../services/errorHandler.js';
 import { getSession, clearSessionIfMatches, updateSessionNames } from './sessionModal.js';
+import { getIcon } from '../utils/icons.js';
 
 export function initServiceView() {
   const form = document.getElementById('serviceForm');
@@ -231,9 +232,10 @@ export function initServiceView() {
       <div class="modal-dialog" role="dialog" aria-modal="true" style="z-index: var(--z-modal-primary);">
         <div class="modal-header">
           <h3 class="card-title" style="display: flex; align-items: center; gap: 8px;">
-            ✏️ Editar Serviço
+            ${getIcon('pencil', 18)}
+            <span>Editar Serviço</span>
           </h3>
-          <button type="button" class="btn-icon" id="btnEditServiceClose" aria-label="Fechar" style="border:none; background:transparent; font-size:18px;">✕</button>
+          <button type="button" class="btn-icon" id="btnEditServiceClose" aria-label="Fechar" style="border:none; background:transparent;">${getIcon('close', 18)}</button>
         </div>
         <form id="editServiceModalForm">
           <div class="modal-body">
@@ -365,7 +367,8 @@ export function initServiceView() {
       <div class="modal-dialog confirm" role="alertdialog" aria-modal="true">
         <div class="modal-header">
           <h3 class="card-title" style="color: var(--color-danger); display: flex; align-items: center; gap: 8px;">
-            🗑️ Excluir Serviço
+            ${getIcon('trash', 18)}
+            <span>Excluir Serviço</span>
           </h3>
         </div>
         <div class="modal-body">
@@ -445,17 +448,17 @@ export function initServiceView() {
               ${escapeHtml(srv.name)} ${audienceBadge} ${activeBadge}
             </div>
             <div class="data-item-meta">
-              <span>🎉 ${escapeHtml(evName)}</span>
-              <span>👤 Resp: ${escapeHtml(srv.attendant_name)}</span>
+              <span>${getIcon('calendar', 13)} ${escapeHtml(evName)}</span>
+              <span>${getIcon('user', 13)} Resp: ${escapeHtml(srv.attendant_name)}</span>
             </div>
             ${srv.description ? `<p style="font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: 4px;">${escapeHtml(srv.description)}</p>` : ''}
           </div>
           <div class="data-item-actions">
             <button type="button" class="btn-icon" data-action="edit-service" data-id="${srv.id}" title="Editar serviço" aria-label="Editar serviço">
-              ✏️
+              ${getIcon('pencil', 16)}
             </button>
             <button type="button" class="btn-icon btn-icon-danger" data-action="delete-service" data-id="${srv.id}" title="Excluir serviço" aria-label="Excluir serviço">
-              🗑️
+              ${getIcon('trash', 16)}
             </button>
           </div>
         </div>

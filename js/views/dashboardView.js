@@ -44,9 +44,13 @@ export function initDashboardView() {
     filterPublic:   document.getElementById('dashFilterPublic'),
     btnClear:       document.getElementById('dashBtnClearFilters'),
     btnRefresh:     document.getElementById('dashBtnRefresh'),
-    filterBadge:    document.getElementById('dashFilterBadge'),
-    lastUpdated:    document.getElementById('dashLastUpdated'),
-    loadingOverlay: document.getElementById('dashLoadingOverlay'),
+    filterBadge:         document.getElementById('dashFilterBadge'),
+    lastUpdated:         document.getElementById('dashLastUpdated'),
+    loadingOverlay:      document.getElementById('dashLoadingOverlay'),
+    btnToggleFilters:    document.getElementById('dashBtnToggleFilters'),
+    filtersContainer:    document.getElementById('dashFiltersContainer'),
+    filterToggleText:    document.getElementById('dashFilterToggleText'),
+    filterToggleChevron: document.getElementById('dashFilterChevron'),
   };
 
   _bindFilterListeners();
@@ -149,6 +153,32 @@ function _bindFilterListeners() {
   if (refs.btnRefresh) {
     refs.btnRefresh.addEventListener('click', () => loadAndRender());
   }
+
+  const _toggleFilters = () => {
+    if (!refs.filtersContainer) return;
+    const isCollapsed = refs.filtersContainer.classList.toggle('is-collapsed');
+    if (refs.btnToggleFilters) {
+      refs.btnToggleFilters.setAttribute('aria-expanded', String(!isCollapsed));
+    }
+    if (refs.filterToggleText) {
+      refs.filterToggleText.textContent = isCollapsed ? 'Exibir Filtros' : 'Ocultar Filtros';
+    }
+    if (refs.filterToggleChevron) {
+      refs.filterToggleChevron.style.transform = isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+  };
+
+  if (refs.btnToggleFilters) {
+    refs.btnToggleFilters.addEventListener('click', _toggleFilters);
+  }
+
+  if (refs.filterBadge) {
+    refs.filterBadge.addEventListener('click', () => {
+      if (window.innerWidth <= 640) {
+        _toggleFilters();
+      }
+    });
+  }
 }
 
 function _populateEventFilter(events) {
@@ -185,15 +215,15 @@ function _updateFilterBadge() {
   const parts = [];
   if (activeFilters.eventId) {
     const ev = rawData.events.find(e => e.id === activeFilters.eventId);
-    if (ev) parts.push('🎉 ' + ev.name);
+    if (ev) parts.push(ev.name);
   }
   if (activeFilters.serviceId) {
     const svc = rawData.services.find(s => s.id === activeFilters.serviceId);
-    if (svc) parts.push('🎯 ' + svc.name);
+    if (svc) parts.push(svc.name);
   }
-  if (activeFilters.gender)              parts.push('⚧️ ' + activeFilters.gender);
-  if (activeFilters.publicType === 'children') parts.push('👶 Crianças');
-  if (activeFilters.publicType === 'adults')   parts.push('🧑 Adultos');
+  if (activeFilters.gender)              parts.push(activeFilters.gender);
+  if (activeFilters.publicType === 'children') parts.push('Crianças');
+  if (activeFilters.publicType === 'adults')   parts.push('Adultos');
 
   if (parts.length === 0) {
     refs.filterBadge.textContent = 'Exibindo totais gerais de todos os eventos';
@@ -440,15 +470,16 @@ function _renderServiceRanking(m) {
   }
 
   const maxCount = visibleServices[0].count || 1;
-  const medals = ['🥇', '🥈', '🥉'];
 
   container.innerHTML = visibleServices.map((s, i) => {
     const pct    = m.totalAttendances > 0 ? Math.round((s.count / m.totalAttendances) * 100) : 0;
     const barPct = Math.round((s.count / maxCount) * 100);
-    const medal  = medals[i] || (i + 1) + 'º';
+    const rankNum = i + 1;
+    const rankClass = rankNum <= 3 ? ` rank-${rankNum}` : '';
+    const badge  = `<span class="dash-rank-badge${rankClass}">${rankNum}º</span>`;
     const hl     = s.highlighted ? ' dash-rank-row--hl' : '';
     return '<div class="dash-rank-row' + hl + '">' +
-      '<span class="dash-rank-medal">' + medal + '</span>' +
+      '<div class="dash-rank-medal">' + badge + '</div>' +
       '<div class="dash-rank-info">' +
         '<span class="dash-rank-name">' + _esc(s.name) + '</span>' +
         '<div class="dash-rank-track"><div class="dash-rank-fill" style="width:' + barPct + '%"></div></div>' +

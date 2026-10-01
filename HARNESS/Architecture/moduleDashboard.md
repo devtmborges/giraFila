@@ -33,6 +33,10 @@ O painel conta com uma barra superior de filtros com recálculo instantâneo in-
 3. **Badge de Contexto:** Um badge visual no topo (`#dashFilterBadge`) exibe em tempo real o resumo textual dos filtros ativos ou indica: *"Exibindo totais gerais de todos os eventos"*.
 4. **Botão Limpar:** `#dashBtnClearFilters` redefine todos os filtros para o estado neutro global e reprocessa a visão.
 5. **Atualização Reativa:** A view responde automaticamente à troca de abas (`switchTab('tabDashboard')`), alteração de sessão (`onSessionChange`) e ao botão manual de atualização (`#dashBtnRefresh`).
+6. **Experiência Mobile (`max-width: 640px`):**
+   - **Filtros Colapsáveis:** Botão retrátil `#dashBtnToggleFilters` com chevron e rótulo dinâmico (*Ocultar Filtros* / *Exibir Filtros*), além de suporte a toque direto no badge de contexto.
+   - **Grid 2x2 com Limpar Full-Width:** Disposição de Evento + Serviço na linha 1, Gênero + Público na linha 2, e botão Limpar expandido na linha 3.
+   - **Grid de Indicadores 2+2+1:** Reorganização dos 5 KPIs com cards pareados (Visitantes + Atendimentos na linha 1; Média Crianças + Média Atendimentos na linha 2) e o card destaque de Taxa de Cobertura abrangendo a largura total na base (linha 3).
 
 ---
 
