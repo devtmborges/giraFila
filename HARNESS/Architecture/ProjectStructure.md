@@ -53,8 +53,8 @@ This file is the **navigation index** for all guides inside the `HARNESS/` direc
 
 - **Repository**: GiraFila
 - **Main Branch**: main
-- **Current Version**: 0.4.0-dashboard
-- **Last Updated**: 2026-10-01 — Tela de Dashboard (Painel Analítico) com filtros globais reativos (evento, serviço, gênero, público), KPIs consolidados, proporção de público, ranking de serviços, gráficos demográficos (gênero, faixa etária), fluxo de atendimentos por hora e acessibilidade digital.
+- **Current Version**: 0.5.0-export
+- **Last Updated**: 2026-10-01 — Exportação de dados para planilhas multi-aba XLSX (Visitantes e Atendimentos) protegida por senha mestre SHA-256 e alteração de senha na session-bar.
 - **Core Files**:
   - `index.html` — Shell da SPA e navegação principal
   - `css/variables.css` — Design tokens e camadas Z-Index
@@ -69,6 +69,8 @@ This file is the **navigation index** for all guides inside the `HARNESS/` direc
   - `js/utils/clipboard.js` — Cópia universal cross-platform (iOS, Android, Windows, Mac, Linux)
   - `js/utils/qrScanner.js` — Leitor de QR Code via câmera do dispositivo
   - `js/utils/icons.js` — Sistema centralizado de ícones vetoriais lineares (SVGs austeros)
+  - `js/utils/masterPassword.js` — Gestão, hashing SHA-256 e persistência da senha mestre de exportação
+  - `js/utils/xlsxExporter.js` — Geração e download client-side de planilhas Excel (.xlsx) multi-aba via SheetJS
   - `js/views/sessionModal.js` — Seleção de contexto por sessão (Evento + Serviço)
   - `js/views/visitorView.js` — Tela 1: Cadastro de Visitantes
   - `js/views/eventView.js` — Tela 2: Gestão de Eventos

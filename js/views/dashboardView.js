@@ -16,7 +16,9 @@ import {
   getVisitorsByEventId,
   getAttendancesByEventId,
 } from '../services/storageService.js';
-import { showToast } from '../services/errorHandler.js';
+import { showToast, showSuccess } from '../services/errorHandler.js';
+import { exportToXlsx } from '../utils/xlsxExporter.js';
+import { verifyPassword } from '../utils/masterPassword.js';
 
 // ---------------------------------------------------------------------------
 // State
@@ -51,9 +53,23 @@ export function initDashboardView() {
     filtersContainer:    document.getElementById('dashFiltersContainer'),
     filterToggleText:    document.getElementById('dashFilterToggleText'),
     filterToggleChevron: document.getElementById('dashFilterChevron'),
+    btnExport:               document.getElementById('dashBtnExport'),
+    exportAuthModal:         document.getElementById('exportAuthModal'),
+    exportAuthPwdInput:      document.getElementById('exportAuthPwdInput'),
+    exportAuthBtnCancel:     document.getElementById('exportAuthBtnCancel'),
+    exportAuthBtnConfirm:    document.getElementById('exportAuthBtnConfirm'),
+    exportModal:             document.getElementById('exportModal'),
+    exportModalBtnCancel:    document.getElementById('exportModalBtnCancel'),
+    exportModalBtnConfirm:   document.getElementById('exportModalBtnConfirm'),
+    exportToggleVisitors:    document.getElementById('exportToggleVisitors'),
+    exportToggleAttendances: document.getElementById('exportToggleAttendances'),
+    exportCountVisitors:     document.getElementById('exportCountVisitors'),
+    exportCountAttendances:  document.getElementById('exportCountAttendances'),
+    exportFilterBadge:       document.getElementById('exportFilterBadge'),
   };
 
   _bindFilterListeners();
+  _bindExportListeners();
 
   // Expose global refresh hook for tab switch and session change
   window.refreshDashboardView = () => loadAndRender();
@@ -619,3 +635,177 @@ function _esc(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
+
+// ---------------------------------------------------------------------------
+// Export & Authentication Sub-Module
+// ---------------------------------------------------------------------------
+function _bindExportListeners() {
+  if (refs.btnExport) {
+    refs.btnExport.addEventListener('click', () => _openExportAuth());
+  }
+
+  if (refs.exportAuthBtnCancel) {
+    refs.exportAuthBtnCancel.addEventListener('click', () => _closeExportAuth());
+  }
+
+  if (refs.exportAuthBtnConfirm) {
+    refs.exportAuthBtnConfirm.addEventListener('click', () => _handleAuthConfirm());
+  }
+
+  if (refs.exportAuthPwdInput) {
+    refs.exportAuthPwdInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        _handleAuthConfirm();
+      }
+    });
+  }
+
+  if (refs.exportAuthModal) {
+    refs.exportAuthModal.addEventListener('click', (e) => {
+      if (e.target === refs.exportAuthModal) _closeExportAuth();
+    });
+  }
+
+  if (refs.exportModalBtnCancel) {
+    refs.exportModalBtnCancel.addEventListener('click', () => _closeExportModal());
+  }
+
+  if (refs.exportModalBtnConfirm) {
+    refs.exportModalBtnConfirm.addEventListener('click', () => _handleExportConfirm());
+  }
+
+  if (refs.exportModal) {
+    refs.exportModal.addEventListener('click', (e) => {
+      if (e.target === refs.exportModal) _closeExportModal();
+    });
+  }
+}
+
+function _openExportAuth() {
+  if (!refs.exportAuthModal) return;
+  if (refs.exportAuthPwdInput) {
+    refs.exportAuthPwdInput.value = '';
+  }
+  refs.exportAuthModal.classList.add('active');
+  if (refs.exportAuthPwdInput) {
+    refs.exportAuthPwdInput.focus();
+  }
+}
+
+function _closeExportAuth() {
+  if (!refs.exportAuthModal) return;
+  refs.exportAuthModal.classList.remove('active');
+  if (refs.exportAuthPwdInput) {
+    refs.exportAuthPwdInput.value = '';
+  }
+}
+
+async function _handleAuthConfirm() {
+  const pwdInput = refs.exportAuthPwdInput;
+  const password = pwdInput ? pwdInput.value : '';
+
+  try {
+    const isValid = await verifyPassword(password);
+    if (!isValid) {
+      showToast('GF-LOCK-VAL-001', 'error');
+      if (pwdInput) {
+        pwdInput.focus();
+        pwdInput.select();
+      }
+      return;
+    }
+    _closeExportAuth();
+    _openExportModal();
+  } catch (err) {
+    console.error('[GiraFila Export Auth] Erro ao validar senha:', err);
+    showToast(err.code || 'GF-LOCK-SYS-001', 'error');
+  }
+}
+
+function _getFilteredData() {
+  const { visitors, attendances } = rawData;
+  const f = activeFilters;
+
+  // Visitantes filtrados demograficamente
+  let filteredVisitors = visitors;
+  if (f.gender) {
+    filteredVisitors = filteredVisitors.filter(v => v.gender === f.gender);
+  }
+  if (f.publicType === 'children') {
+    filteredVisitors = filteredVisitors.filter(v => v.is_child);
+  } else if (f.publicType === 'adults') {
+    filteredVisitors = filteredVisitors.filter(v => !v.is_child);
+  }
+
+  // Atendimentos filtrados por serviço
+  let filteredAttendances = attendances;
+  if (f.serviceId) {
+    filteredAttendances = filteredAttendances.filter(a => a.service_id === f.serviceId);
+  }
+
+  // Join demográfico em atendimentos
+  if (f.gender || f.publicType) {
+    const visitorLookup = new Set(
+      filteredVisitors.map(v => v.event_id + '_' + v.qr_code)
+    );
+    filteredAttendances = filteredAttendances.filter(a =>
+      visitorLookup.has(a.event_id + '_' + a.visitor_qr_code)
+    );
+  }
+
+  return {
+    visitors: filteredVisitors,
+    attendances: filteredAttendances,
+  };
+}
+
+function _openExportModal() {
+  if (!refs.exportModal) return;
+
+  const filtered = _getFilteredData();
+  const vCount = (filtered.visitors || []).length;
+  const aCount = (filtered.attendances || []).length;
+
+  if (refs.exportCountVisitors) {
+    refs.exportCountVisitors.textContent = `${vCount} ${vCount === 1 ? 'registro' : 'registros'}`;
+  }
+  if (refs.exportCountAttendances) {
+    refs.exportCountAttendances.textContent = `${aCount} ${aCount === 1 ? 'registro' : 'registros'}`;
+  }
+
+  if (refs.exportFilterBadge) {
+    const badgeText = refs.filterBadge ? refs.filterBadge.textContent.trim() : '';
+    refs.exportFilterBadge.textContent = badgeText || 'Exibindo totais gerais de todos os eventos';
+  }
+
+  if (refs.exportToggleVisitors) refs.exportToggleVisitors.checked = true;
+  if (refs.exportToggleAttendances) refs.exportToggleAttendances.checked = true;
+
+  refs.exportModal.classList.add('active');
+}
+
+function _closeExportModal() {
+  if (!refs.exportModal) return;
+  refs.exportModal.classList.remove('active');
+}
+
+function _handleExportConfirm() {
+  const includeVisitors = refs.exportToggleVisitors ? refs.exportToggleVisitors.checked : false;
+  const includeAttendances = refs.exportToggleAttendances ? refs.exportToggleAttendances.checked : false;
+
+  try {
+    const filteredData = _getFilteredData();
+    exportToXlsx(filteredData, rawData, { includeVisitors, includeAttendances });
+    _closeExportModal();
+    showSuccess('Planilha exportada com sucesso!');
+  } catch (err) {
+    console.error('[GiraFila Export] Erro durante exportação:', err);
+    if (err && err.code) {
+      showToast(err.code, 'error');
+    } else {
+      showToast('GF-EXPORT-SYS-002', 'error');
+    }
+  }
+}
+

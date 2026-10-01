@@ -922,7 +922,7 @@
 
 @media (min-width: 640px) {
   .dash-charts-row {
-    grid-template-columns: 1fr 1.5fr;
+    grid-template-columns: 1fr 1fr;
   }
 }
 
@@ -932,7 +932,7 @@
 }
 
 .dash-chart-card--wide {
-  /* occupies the wider slot */
+  grid-column: 1 / -1;
 }
 
 /* Public proportion card */
@@ -1200,4 +1200,162 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ==========================================================================
+   EXPORT DATA & MASTER PASSWORD
+   ========================================================================== */
+
+/* Botão Lock / Senha Mestre (session-bar) */
+.btn-lock {
+  background-color: #ffffff;
+  color: var(--color-primary);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  height: 36px;
+  min-height: 36px;
+  width: 36px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-lock .icon-svg {
+  margin-right: 0;
+}
+
+.btn-lock:hover {
+  background-color: #f8fafc;
+  color: var(--color-primary-hover);
+  border-color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Dashboard Header Responsive */
+.dash-header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-3);
+}
+
+@media (min-width: 640px) {
+  .dash-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.dash-header-title {
+  min-width: 0;
+}
+
+.dash-header-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+@media (min-width: 640px) {
+  .dash-header-actions {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+  }
+}
+
+.dash-header-updated {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.dash-header-btns {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dash-btn-action {
+  min-height: 36px;
+  height: 36px;
+  padding: 0 var(--space-3);
+  font-size: var(--font-size-xs);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+@media (min-width: 640px) {
+  .dash-btn-action {
+    flex: initial;
+  }
+}
+
+/* Modais de Exportação & Senha */
+.modal-auth-desc,
+.export-modal-desc {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-3);
+}
+
+.export-filter-badge {
+  font-size: var(--font-size-xs);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-weight: var(--font-weight-medium);
+}
+
+.export-cdn-notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-sm);
+  padding: 6px var(--space-3);
+}
+
+.export-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+}
+
+.export-toggle-row:last-of-type {
+  border-bottom: none;
+}
+
+.export-toggle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.export-toggle-label {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-main);
+}
+
+.export-toggle-count {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
 }

@@ -11,6 +11,9 @@
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/components.css">
+
+  <!-- SheetJS v0.20.3 — Geração de XLSX client-side. Requer conexão à internet. -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 
 <body>
@@ -34,6 +37,13 @@
         </div>
       </div>
       <div class="session-actions">
+        <button type="button" class="btn btn-secondary btn-lock" id="btnExportLock" title="Alterar Senha Mestre">
+          <svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+        </button>
         <button type="button" class="btn btn-secondary btn-wifi" id="btnLanInfo">
           <svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -478,26 +488,37 @@
 
       <!-- Dashboard Header & Filters -->
       <div class="card">
-        <div class="card-header">
-          <div>
+        <div class="card-header dash-header">
+          <div class="dash-header-title">
             <h1 class="card-title">Painel Analítico</h1>
             <p class="card-subtitle">Indicadores consolidados de participação e atendimento</p>
           </div>
-          <div style="display:flex; gap:var(--space-2); align-items:center; flex-wrap:wrap;">
-            <span style="font-size:var(--font-size-xs); color:var(--color-text-muted);">
+          <div class="dash-header-actions">
+            <span class="dash-header-updated">
               Atualizado: <strong id="dashLastUpdated">--:--</strong>
             </span>
-            <button type="button" class="btn btn-secondary" id="dashBtnRefresh"
-              style="min-height:32px; padding:2px 10px; font-size:var(--font-size-xs);">
-              <svg class="icon-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                <path d="M3 3v5h5" />
-                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-                <path d="M16 16h5v5" />
-              </svg>
-              <span>Atualizar</span>
-            </button>
+            <div class="dash-header-btns">
+              <button type="button" class="btn btn-secondary dash-btn-action" id="dashBtnRefresh">
+                <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                  <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                  <path d="M16 16h5v5" />
+                </svg>
+                <span>Atualizar</span>
+              </button>
+              <button type="button" class="btn btn-secondary dash-btn-action" id="dashBtnExport"
+                title="Exportar dados para planilha Excel (.xlsx)">
+                <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                <span>Exportar</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -621,7 +642,7 @@
         </div>
       </div>
 
-      <!-- Row 1: Proporção Público + Ranking de Serviços -->
+      <!-- Row 1: Proporção Público + Acessibilidade Digital -->
       <div class="dash-charts-row">
         <div class="card dash-chart-card">
           <div class="card-header" style="padding-bottom:var(--space-2);">
@@ -642,46 +663,6 @@
           <div id="dashPublicBar" class="dash-pub-bar"></div>
         </div>
 
-        <div class="card dash-chart-card dash-chart-card--wide">
-          <div class="card-header" style="padding-bottom:var(--space-2);">
-            <h2 class="card-title" style="font-size:var(--font-size-base);">Ranking de Serviços</h2>
-          </div>
-          <div id="dashServiceRanking" class="dash-ranking">
-            <p class="dash-empty">Carregando...</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Row 2: Gênero + Faixa Etária -->
-      <div class="dash-charts-row">
-        <div class="card dash-chart-card">
-          <div class="card-header" style="padding-bottom:var(--space-2);">
-            <h2 class="card-title" style="font-size:var(--font-size-base);">Distribuição por Gênero</h2>
-          </div>
-          <div id="dashGenderChart" class="dash-demo-list">
-            <p class="dash-empty">Carregando...</p>
-          </div>
-        </div>
-        <div class="card dash-chart-card">
-          <div class="card-header" style="padding-bottom:var(--space-2);">
-            <h2 class="card-title" style="font-size:var(--font-size-base);">Distribuição por Faixa Etária</h2>
-          </div>
-          <div id="dashAgeChart" class="dash-demo-list">
-            <p class="dash-empty">Carregando...</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Row 3: Fluxo por Hora + Acessibilidade Digital -->
-      <div class="dash-charts-row">
-        <div class="card dash-chart-card dash-chart-card--wide">
-          <div class="card-header" style="padding-bottom:var(--space-2);">
-            <h2 class="card-title" style="font-size:var(--font-size-base);">Fluxo de Atendimentos por Hora</h2>
-          </div>
-          <div id="dashHourlyChart">
-            <p class="dash-empty">Carregando...</p>
-          </div>
-        </div>
         <div class="card dash-chart-card">
           <div class="card-header" style="padding-bottom:var(--space-2);">
             <h2 class="card-title" style="font-size:var(--font-size-base);">Acessibilidade Digital</h2>
@@ -703,6 +684,50 @@
             style="font-size:var(--font-size-xs); color:var(--color-text-muted); margin-top:var(--space-2); text-align:center;">
             Base: adultos cadastrados
           </p>
+        </div>
+      </div>
+
+      <!-- Row 2: Ranking de Serviços -->
+      <div class="dash-charts-row">
+        <div class="card dash-chart-card dash-chart-card--wide">
+          <div class="card-header" style="padding-bottom:var(--space-2);">
+            <h2 class="card-title" style="font-size:var(--font-size-base);">Ranking de Serviços</h2>
+          </div>
+          <div id="dashServiceRanking" class="dash-ranking">
+            <p class="dash-empty">Carregando...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 3: Gênero + Faixa Etária -->
+      <div class="dash-charts-row">
+        <div class="card dash-chart-card">
+          <div class="card-header" style="padding-bottom:var(--space-2);">
+            <h2 class="card-title" style="font-size:var(--font-size-base);">Distribuição por Gênero</h2>
+          </div>
+          <div id="dashGenderChart" class="dash-demo-list">
+            <p class="dash-empty">Carregando...</p>
+          </div>
+        </div>
+        <div class="card dash-chart-card">
+          <div class="card-header" style="padding-bottom:var(--space-2);">
+            <h2 class="card-title" style="font-size:var(--font-size-base);">Distribuição por Faixa Etária</h2>
+          </div>
+          <div id="dashAgeChart" class="dash-demo-list">
+            <p class="dash-empty">Carregando...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 4: Fluxo por Hora -->
+      <div class="dash-charts-row">
+        <div class="card dash-chart-card dash-chart-card--wide">
+          <div class="card-header" style="padding-bottom:var(--space-2);">
+            <h2 class="card-title" style="font-size:var(--font-size-base);">Fluxo de Atendimentos por Hora</h2>
+          </div>
+          <div id="dashHourlyChart">
+            <p class="dash-empty">Carregando...</p>
+          </div>
         </div>
       </div>
 
@@ -815,6 +840,139 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-primary" id="lanModalClose">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       EXPORT AUTH MODAL (MASTER PASSWORD PROTECTION)
+       ==================================================================== -->
+  <div class="modal-backdrop" id="exportAuthModal" role="dialog" aria-modal="true" aria-labelledby="exportAuthTitle">
+    <div class="modal-dialog" style="max-width: 400px;">
+      <div class="modal-header">
+        <h2 class="card-title" id="exportAuthTitle" style="display: flex; align-items: center; gap: 8px;">
+          <svg class="icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          <span>Acesso Restrito</span>
+        </h2>
+      </div>
+      <div class="modal-body">
+        <p class="modal-auth-desc" style="font-size: var(--font-size-sm); color: var(--color-text-muted); margin: 0;">
+          Informe a senha mestre para acessar a exportação de dados.
+        </p>
+        <div class="form-group" id="exportAuthPwdField" style="margin: 0;">
+          <label for="exportAuthPwdInput" class="form-label">Senha</label>
+          <input type="password" id="exportAuthPwdInput" class="form-input" autocomplete="current-password"
+            placeholder="••••••••">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="exportAuthBtnCancel">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="exportAuthBtnConfirm">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       EXPORT DATA MODAL (XLSX OPTIONS)
+       ==================================================================== -->
+  <div class="modal-backdrop" id="exportModal" role="dialog" aria-modal="true" aria-labelledby="exportModalTitle">
+    <div class="modal-dialog" style="max-width: 440px;">
+      <div class="modal-header">
+        <h2 class="card-title" id="exportModalTitle" style="display: flex; align-items: center; gap: 8px;">
+          <svg class="icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          <span>Exportar Dados</span>
+        </h2>
+      </div>
+      <div class="modal-body">
+        <!-- Badge de filtros ativos -->
+        <div id="exportFilterBadge" class="export-filter-badge"></div>
+
+        <!-- Aviso de conectividade (SheetJS CDN) -->
+        <div class="export-cdn-notice">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+          <span>A exportação requer conexão à internet.</span>
+        </div>
+
+        <!-- Toggle: Visitantes -->
+        <label class="export-toggle-row" for="exportToggleVisitors">
+          <div class="export-toggle-info">
+            <span class="export-toggle-label">Visitantes</span>
+            <span class="export-toggle-count" id="exportCountVisitors">— registros</span>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="exportToggleVisitors" checked>
+            <span class="toggle-slider"></span>
+          </div>
+        </label>
+
+        <!-- Toggle: Atendimentos -->
+        <label class="export-toggle-row" for="exportToggleAttendances">
+          <div class="export-toggle-info">
+            <span class="export-toggle-label">Atendimentos</span>
+            <span class="export-toggle-count" id="exportCountAttendances">— registros</span>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="exportToggleAttendances" checked>
+            <span class="toggle-slider"></span>
+          </div>
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="exportModalBtnCancel">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="exportModalBtnConfirm">Exportar .xlsx</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       CHANGE MASTER PASSWORD MODAL
+       ==================================================================== -->
+  <div class="modal-backdrop" id="changePwdModal" role="dialog" aria-modal="true" aria-labelledby="changePwdTitle">
+    <div class="modal-dialog" style="max-width: 420px;">
+      <div class="modal-header">
+        <h2 class="card-title" id="changePwdTitle" style="display: flex; align-items: center; gap: 8px;">
+          <svg class="icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          <span>Alterar Senha Mestre</span>
+        </h2>
+      </div>
+      <div class="modal-body">
+        <div class="form-group" id="changePwdCurrentField" style="margin: 0;">
+          <label for="changePwdCurrent" class="form-label">Senha Atual</label>
+          <input type="password" id="changePwdCurrent" class="form-input" autocomplete="current-password"
+            placeholder="••••••••">
+        </div>
+        <div class="form-group" id="changePwdNewField" style="margin: 0;">
+          <label for="changePwdNew" class="form-label">Nova Senha</label>
+          <input type="password" id="changePwdNew" class="form-input" autocomplete="new-password"
+            placeholder="Mínimo 6 caracteres">
+        </div>
+        <div class="form-group" id="changePwdConfirmField" style="margin: 0;">
+          <label for="changePwdConfirm" class="form-label">Confirmar Nova Senha</label>
+          <input type="password" id="changePwdConfirm" class="form-input" autocomplete="new-password"
+            placeholder="Repita a nova senha">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="changePwdBtnCancel">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="changePwdBtnConfirm">Salvar Senha</button>
       </div>
     </div>
   </div>

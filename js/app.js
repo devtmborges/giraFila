@@ -13,6 +13,7 @@ import { initDashboardView } from './views/dashboardView.js';
 import { copyTextToClipboard } from './utils/clipboard.js';
 import { showToast, showSuccess } from './services/errorHandler.js';
 import { getIcon } from './utils/icons.js';
+import { verifyPassword, updatePassword } from './utils/masterPassword.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   // 1. Initialize IndexedDB schema
@@ -178,4 +179,97 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   updateSessionBar();
+
+  // 8. Export Master Password Management
+  const btnExportLock     = document.getElementById('btnExportLock');
+  const changePwdModal    = document.getElementById('changePwdModal');
+  const changePwdBtnCancel  = document.getElementById('changePwdBtnCancel');
+  const changePwdBtnConfirm = document.getElementById('changePwdBtnConfirm');
+  const changePwdCurrent    = document.getElementById('changePwdCurrent');
+  const changePwdNew        = document.getElementById('changePwdNew');
+  const changePwdConfirm    = document.getElementById('changePwdConfirm');
+
+  const closeChangePwdModal = () => {
+    if (changePwdModal) changePwdModal.classList.remove('active');
+    if (changePwdCurrent) changePwdCurrent.value = '';
+    if (changePwdNew) changePwdNew.value = '';
+    if (changePwdConfirm) changePwdConfirm.value = '';
+  };
+
+  if (btnExportLock && changePwdModal) {
+    btnExportLock.addEventListener('click', () => {
+      if (changePwdCurrent) changePwdCurrent.value = '';
+      if (changePwdNew) changePwdNew.value = '';
+      if (changePwdConfirm) changePwdConfirm.value = '';
+      changePwdModal.classList.add('active');
+      if (changePwdCurrent) changePwdCurrent.focus();
+    });
+  }
+
+  if (changePwdBtnCancel) {
+    changePwdBtnCancel.addEventListener('click', closeChangePwdModal);
+  }
+
+  if (changePwdModal) {
+    changePwdModal.addEventListener('click', (e) => {
+      if (e.target === changePwdModal) closeChangePwdModal();
+    });
+  }
+
+  const handleChangePwdConfirm = async () => {
+    const current = changePwdCurrent ? changePwdCurrent.value : '';
+    const newPwd  = changePwdNew ? changePwdNew.value : '';
+    const confirm = changePwdConfirm ? changePwdConfirm.value : '';
+
+    try {
+      const isValid = await verifyPassword(current);
+      if (!isValid) {
+        showToast('GF-LOCK-VAL-001', 'error');
+        if (changePwdCurrent) {
+          changePwdCurrent.focus();
+          changePwdCurrent.select();
+        }
+        return;
+      }
+
+      if (newPwd.length < 6) {
+        showToast('GF-LOCK-VAL-002', 'error');
+        if (changePwdNew) {
+          changePwdNew.focus();
+        }
+        return;
+      }
+
+      if (newPwd !== confirm) {
+        showToast('GF-LOCK-VAL-003', 'error');
+        if (changePwdConfirm) {
+          changePwdConfirm.focus();
+        }
+        return;
+      }
+
+      await updatePassword(newPwd);
+      closeChangePwdModal();
+      showSuccess('Senha mestre alterada com sucesso!');
+    } catch (err) {
+      console.error('[GiraFila Change Pwd] Erro ao alterar senha:', err);
+      showToast(err.code || 'GF-LOCK-SYS-001', 'error');
+    }
+  };
+
+  if (changePwdBtnConfirm) {
+    changePwdBtnConfirm.addEventListener('click', handleChangePwdConfirm);
+  }
+
+  // Enter key support on password fields
+  [changePwdCurrent, changePwdNew, changePwdConfirm].forEach(input => {
+    if (input) {
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleChangePwdConfirm();
+        }
+      });
+    }
+  });
 });

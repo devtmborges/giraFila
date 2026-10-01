@@ -123,3 +123,20 @@ Segmentação em 7 faixas etárias baseadas na idade cadastrada:
 
 - **Código de Erro:** `GF-DASH-SYS-001` (definido no catálogo SSOT `js/constants/errors.js`).
 - **Disparo:** Capturado no bloco `try/catch` de `loadAndRender()`, exibindo toast amigável ao usuário caso haja falha de conexão ou leitura no IndexedDB.
+
+---
+
+## 7. Sub-Módulo: Exportação de Dados (XLSX)
+
+- **Botão de acesso:** `#dashBtnExport` (barra de ações do Dashboard).
+- **Botão de senha:** `#btnExportLock` (session-bar, ao lado do botão Wi-Fi).
+- **Biblioteca:** SheetJS (`window.XLSX`) via CDN — requer conexão à internet.
+- **Senha mestre:** SHA-256(`'girafila'` + senha) armazenada em `localStorage['gf_export_pwd_hash']` (inicialização silenciosa).
+- **Utilitário de exportação:** `js/utils/xlsxExporter.js`.
+- **Utilitário de senha:** `js/utils/masterPassword.js`.
+- **Dados exportados:** Filtrados pelos filtros globais ativos do Dashboard.
+- **Abas:** `Visitantes` e/ou `Atendimentos` conforme seleção nos toggles do modal.
+- **Arquivo gerado:** `GiraFila_dd-mm-aaaa_hhmm.xlsx`.
+- **Modais:** `#exportAuthModal` → `#exportModal` | `#changePwdModal`.
+- **Códigos de Erro:** `GF-EXPORT-VAL-001`, `GF-EXPORT-REG-001`, `GF-EXPORT-SYS-001`, `GF-EXPORT-SYS-002`, `GF-LOCK-VAL-001`, `GF-LOCK-VAL-002`, `GF-LOCK-VAL-003`, `GF-LOCK-SYS-001`.
+

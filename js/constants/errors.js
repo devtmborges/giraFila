@@ -289,5 +289,81 @@ export const ERROR_CATALOG = Object.freeze({
       relatedFiles: ['js/views/dashboardView.js', 'js/services/storageService.js', 'api.php'],
       suggestedAction: 'Verificar console do navegador para stack trace. Recarregar a página. Checar disponibilidade da LAN API.'
     }
+  },
+
+  // Export
+  'GF-EXPORT-VAL-001': {
+    userMessage: 'Selecione ao menos uma opção (Visitantes ou Atendimentos) para exportar.',
+    technicalContext: {
+      summary: 'Nenhuma aba selecionada nos toggles antes de confirmar a exportação.',
+      commonCauses: ['Usuário desmarcou ambos os toggles'],
+      relatedFiles: ['js/views/dashboardView.js', 'js/utils/xlsxExporter.js'],
+      suggestedAction: 'Ativar ao menos um toggle antes de clicar em Exportar.'
+    }
+  },
+  'GF-EXPORT-REG-001': {
+    userMessage: 'Não há dados para exportar com os filtros ativos. Limpe os filtros ou registre dados primeiro.',
+    technicalContext: {
+      summary: 'Dados filtrados resultaram em zero registros em todas as abas selecionadas.',
+      commonCauses: ['Filtros muito restritivos', 'Banco de dados vazio para o contexto selecionado'],
+      relatedFiles: ['js/views/dashboardView.js', 'js/utils/xlsxExporter.js'],
+      suggestedAction: 'Limpar filtros no Dashboard e tentar novamente.'
+    }
+  },
+  'GF-EXPORT-SYS-001': {
+    userMessage: 'O recurso de exportação não está disponível. Verifique a conexão com a internet e recarregue a página.',
+    technicalContext: {
+      summary: 'Biblioteca SheetJS (window.XLSX) não carregada via CDN.',
+      commonCauses: ['Sem conexão à internet no momento do carregamento', 'CDN bloqueado por firewall ou proxy'],
+      relatedFiles: ['index.html', 'js/utils/xlsxExporter.js'],
+      suggestedAction: 'Verificar o carregamento da tag <script> do SheetJS em index.html.'
+    }
+  },
+  'GF-EXPORT-SYS-002': {
+    userMessage: 'Não foi possível gerar o arquivo de exportação. Tente novamente.',
+    technicalContext: {
+      summary: 'Falha em XLSX.writeFile() ou na criação do Blob para download.',
+      commonCauses: ['Memória insuficiente no dispositivo', 'Restrição de download do navegador'],
+      relatedFiles: ['js/utils/xlsxExporter.js'],
+      suggestedAction: 'Verificar console do navegador. Reduzir volume via filtros e tentar novamente.'
+    }
+  },
+
+  // Master Password / Lock
+  'GF-LOCK-VAL-001': {
+    userMessage: 'Senha mestre incorreta. Tente novamente.',
+    technicalContext: {
+      summary: 'Hash da senha informada não corresponde ao hash armazenado em localStorage.',
+      commonCauses: ['Senha digitada incorretamente'],
+      relatedFiles: ['js/utils/masterPassword.js', 'js/views/dashboardView.js', 'js/app.js'],
+      suggestedAction: 'Verificar se o Caps Lock está ativo e tentar novamente.'
+    }
+  },
+  'GF-LOCK-VAL-002': {
+    userMessage: 'A nova senha mestre deve ter ao menos 6 caracteres.',
+    technicalContext: {
+      summary: 'Nova senha abaixo do tamanho mínimo de 6 caracteres.',
+      commonCauses: ['Senha muito curta digitada pelo usuário'],
+      relatedFiles: ['js/app.js', 'js/utils/masterPassword.js'],
+      suggestedAction: 'Exigir mínimo de 6 caracteres na nova senha.'
+    }
+  },
+  'GF-LOCK-VAL-003': {
+    userMessage: 'A nova senha mestre e a confirmação não coincidem. Verifique e tente novamente.',
+    technicalContext: {
+      summary: 'Campo "Nova Senha" e "Confirmar Nova Senha" com valores divergentes.',
+      commonCauses: ['Erro de digitação na confirmação'],
+      relatedFiles: ['js/app.js'],
+      suggestedAction: 'Redigitar ambos os campos de nova senha.'
+    }
+  },
+  'GF-LOCK-SYS-001': {
+    userMessage: 'Não foi possível processar a senha mestre. Seu navegador pode não suportar esta funcionalidade.',
+    technicalContext: {
+      summary: 'window.crypto.subtle indisponível — API Web Crypto não suportada.',
+      commonCauses: ['Contexto não seguro (HTTP em IP de rede local sem HTTPS)', 'Navegador muito antigo'],
+      relatedFiles: ['js/utils/masterPassword.js'],
+      suggestedAction: 'Verificar se o navegador suporta Web Crypto API. Usar contexto HTTPS se possível.'
+    }
   }
 });
