@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <meta name="description"
+    content="GiraFila — Sistema descentralizado e leve para controle de fluxo e atendimento em ações sociais voluntárias.">
+  <title>GiraFila — Controle de Atendimento Social</title>
+
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+
+<body>
+
+  <!-- Optimized Compact Header (Contexto Ativo & Ações) -->
+  <header class="session-bar" role="banner">
+    <div class="session-bar-content">
+      <div class="session-info">
+        <span class="session-title">Contexto Ativo de Trabalho</span>
+        <div class="session-values">
+          <button type="button" class="session-pill-btn" id="btnSelectEventContext"
+            title="Clique para trocar o Evento ativo">
+            <span>🎉 Evento:</span> <strong id="sessionEventDisplay">Carregando...</strong> <span
+              class="pill-arrow">▾</span>
+          </button>
+          <button type="button" class="session-pill-btn" id="btnSelectServiceContext"
+            title="Clique para trocar o Posto/Serviço ativo">
+            <span>🎯 Posto/Serviço:</span> <strong id="sessionServiceDisplay">Carregando...</strong> <span
+              class="pill-arrow">▾</span>
+          </button>
+        </div>
+      </div>
+      <div class="session-actions">
+        <button type="button" class="btn btn-secondary btn-wifi" id="btnLanInfo">
+          📶 Rede Wi-Fi
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Shell Container -->
+  <main class="app-container">
+
+    <!-- Tab Navigation (Mobile First) -->
+    <nav class="tab-navigation" aria-label="Navegação Principal">
+      <button type="button" class="tab-btn active" data-tab="tabAttendance">
+        <span>⚡</span>
+        <span>Atendimento</span>
+      </button>
+      <button type="button" class="tab-btn" data-tab="tabVisitor">
+        <span>👥</span>
+        <span>Recepção</span>
+      </button>
+      <button type="button" class="tab-btn" data-tab="tabService">
+        <span>🛠️</span>
+        <span>Serviços</span>
+      </button>
+      <button type="button" class="tab-btn" data-tab="tabEvent">
+        <span>📅</span>
+        <span>Eventos</span>
+      </button>
+      <button type="button" class="tab-btn" data-tab="tabDashboard">
+        <span>📊</span>
+        <span>Dashboard</span>
+      </button>
+    </nav>
+
+    <!-- ====================================================================
+         VIEW 1: OPERATIONAL ATTENDANCE (TELA 4)
+         ==================================================================== -->
+    <section id="tabAttendance" class="view-panel active">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h1 class="card-title">Registro de Atendimento</h1>
+            <p class="card-subtitle">Valide e confirme a entrega do benefício de forma rápida</p>
+          </div>
+        </div>
+
+        <form id="attendanceForm" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="attendanceQrCode">
+              <span>Número do Ticket QR Code (1 a 9999)</span>
+              <button type="button" class="btn btn-secondary" id="btnScanQr"
+                style="min-height: 32px; padding: 2px 10px; font-size: var(--font-size-xs);">
+                📷 Escanear Câmera
+              </button>
+            </label>
+            <input type="number" id="attendanceQrCode" class="form-input"
+              placeholder="Digite o número ou escaneie o ticket" min="1" max="9999" inputmode="numeric"
+              autocomplete="off">
+            <span class="form-error-msg" id="attendanceQrCodeError">Informe um ticket válido entre 1 e 9999.</span>
+          </div>
+
+          <!-- Video Camera Scanner Area -->
+          <div class="scanner-container" id="scannerContainer">
+            <video id="scannerVideo" class="scanner-video" playsinline></video>
+            <div class="scanner-overlay"></div>
+            <button type="button" class="btn btn-danger" id="btnCloseScanner"
+              style="position: absolute; bottom: 8px; z-index: 10; min-height: 32px; font-size: var(--font-size-xs);">
+              Fechar Câmera
+            </button>
+          </div>
+
+          <!-- Participant Preview Card -->
+          <div id="attendanceParticipantCard"
+            style="display: none; background: #f0fdf4; border: 1.5px solid #86efac; border-radius: var(--radius-md); padding: var(--space-3); flex-direction: column; gap: 2px;">
+            <div id="attendanceParticipantName"
+              style="font-weight: var(--font-weight-bold); color: #166534; font-size: var(--font-size-base);"></div>
+            <div id="attendanceParticipantMeta" style="font-size: var(--font-size-xs); color: #15803d;"></div>
+          </div>
+
+          <!-- Main Action Button -->
+          <button type="submit" class="btn btn-primary btn-lg btn-block" id="btnConfirmAttendance">
+            CONFIRMAR ATENDIMENTO
+          </button>
+        </form>
+      </div>
+
+      <!-- Recent Attendances -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Atendimentos no Posto</h2>
+          <span class="badge badge-done" id="attendanceCountBadge">0</span>
+        </div>
+        <div class="search-bar-wrapper">
+          <input type="search" class="form-input search-input" id="attendanceSearchInput"
+            placeholder="🔍 Pesquisar por nome do participante..." aria-label="Pesquisar atendimentos por nome">
+        </div>
+        <div class="data-list" id="recentAttendancesList">
+          <p style="color: var(--color-text-muted); font-size: var(--font-size-sm); text-align: center; padding: 1rem;">
+            Nenhum atendimento realizado neste posto ainda.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         VIEW 2: VISITOR REGISTRATION (TELA 1)
+         ==================================================================== -->
+    <section id="tabVisitor" class="view-panel">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h1 class="card-title">Cadastro de Visitantes</h1>
+            <p class="card-subtitle">Registro na recepção com entrega do ticket QR Code</p>
+          </div>
+        </div>
+
+        <form id="visitorForm" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="visitorQrCode">
+              <span>Número do Ticket QR Code (1 a 9999)</span>
+              <button type="button" class="btn btn-secondary" id="btnScanVisitorQr"
+                style="min-height: 28px; padding: 2px 8px; font-size: var(--font-size-xs);">
+                📷 Escanear
+              </button>
+            </label>
+            <input type="number" id="visitorQrCode" class="form-input" placeholder="Ex: 101" min="1" max="9999"
+              inputmode="numeric">
+            <span class="form-error-msg" id="visitorQrCodeError">Informe um ticket válido entre 1 e 9999.</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="visitorName">Nome Completo</label>
+            <input type="text" id="visitorName" class="form-input"
+              placeholder="Nome do participante (auto-capitalizado)" maxlength="200" autocomplete="off">
+            <span class="form-error-msg" id="visitorNameError">O nome é obrigatório (até 200 letras).</span>
+          </div>
+
+          <!-- Gênero e Idade -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3);">
+            <div class="form-group">
+              <label class="form-label" for="visitorGender">Gênero</label>
+              <select id="visitorGender" class="form-input">
+                <option value="">-- Selecione o Gênero --</option>
+                <option value="Masculino">Masculino</option>
+                <option value="Feminino">Feminino</option>
+              </select>
+              <span class="form-error-msg" id="visitorGenderError">O campo gênero é obrigatório. Selecione Masculino ou
+                Feminino.</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="visitorAge">Idade</label>
+              <input type="number" id="visitorAge" class="form-input" placeholder="Ex: 25" min="0" max="120"
+                inputmode="numeric">
+              <span class="form-error-msg" id="visitorAgeError">Informe uma idade válida entre 0 e 120 anos.</span>
+            </div>
+          </div>
+
+          <!-- Toggle Criança -->
+          <div class="toggle-wrapper"
+            style="background-color: var(--color-surface-hover); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3);">
+            <label class="toggle-label" for="visitorIsChild">
+              <strong>É menor de idade (Criança)?</strong>
+              <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">
+                Exige vínculo obrigatório com um adulto responsável
+              </div>
+            </label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="visitorIsChild">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <!-- Dynamic Phone Section (When Criança = false) -->
+          <div id="visitorPhoneContainer" class="form-group">
+            <label class="form-label" for="visitorPhone">
+              <span>Telefone de Contato</span>
+              <label
+                style="display: flex; align-items: center; gap: 6px; font-weight: normal; font-size: var(--font-size-xs); cursor: pointer;">
+                <input type="checkbox" id="visitorNoPhone">
+                <span>Não possui telefone</span>
+              </label>
+            </label>
+            <input type="tel" id="visitorPhone" class="form-input" placeholder="(XX) XXXXX-XXXX" maxlength="15"
+              inputmode="tel">
+            <span class="form-error-msg" id="visitorPhoneError">Informe o telefone completo no formato (XX)
+              XXXXX-XXXX.</span>
+          </div>
+
+          <!-- Dynamic Guardian Section (When Criança = true) -->
+          <div id="visitorGuardianContainer" class="form-group" style="display: none;">
+            <label class="form-label" for="visitorGuardianQr">
+              <span>Número do QR Code do Adulto Responsável</span>
+              <button type="button" class="btn btn-secondary" id="btnScanGuardianQr"
+                style="min-height: 28px; padding: 2px 8px; font-size: var(--font-size-xs);">
+                📷 Escanear
+              </button>
+            </label>
+            <input type="number" id="visitorGuardianQr" class="form-input"
+              placeholder="Digite o número do ticket do adulto responsável" min="1" max="9999" inputmode="numeric">
+            <span class="form-error-msg" id="visitorGuardianQrError">O QR Code do adulto responsável é
+              obrigatório.</span>
+            <div id="visitorGuardianInfo" class="form-error-msg"></div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">
+            Cadastrar Participante
+          </button>
+        </form>
+      </div>
+
+      <!-- Registered Visitors List -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Visitantes Cadastrados no Evento</h2>
+          <span class="badge badge-done" id="visitorCountBadge">0</span>
+        </div>
+        <div class="search-bar-wrapper">
+          <input type="search" class="form-input search-input" id="visitorSearchInput"
+            placeholder="🔍 Pesquisar por nome do participante..." aria-label="Pesquisar Visitantes por nome">
+        </div>
+        <div class="data-list" id="registeredVisitorsList">
+          <p style="color: var(--color-text-muted); font-size: var(--font-size-sm); text-align: center; padding: 1rem;">
+            Carregando Visitantes...
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         VIEW 3: SERVICES MANAGEMENT (TELA 3)
+         ==================================================================== -->
+    <section id="tabService" class="view-panel">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h1 class="card-title">Gestão de Postos e Serviços</h1>
+            <p class="card-subtitle">Cadastre os postos de atendimento e benefícios oferecidos</p>
+          </div>
+        </div>
+
+        <form id="serviceForm" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="serviceName">Nome do Serviço / Posto</label>
+            <input type="text" id="serviceName" class="form-input" placeholder="Ex: Cabeleireiro, Dentista, Brinquedos"
+              maxlength="100">
+            <span class="form-error-msg" id="serviceNameError">O nome do serviço é obrigatório.</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="serviceEventSearch">Evento Vinculado</label>
+            <div class="autocomplete-container">
+              <input type="text" id="serviceEventSearch" class="form-input"
+                placeholder="Digite pelo menos 3 letras do evento..." autocomplete="off">
+              <input type="hidden" id="serviceEventId">
+              <div class="autocomplete-dropdown" id="serviceEventDropdown"></div>
+            </div>
+            <span class="form-error-msg" id="serviceEventSearchError">Selecione o evento vinculado a partir das
+              opções.</span>
+          </div>
+
+          <!-- Audience Selection (Inclusive & Independent) -->
+          <div
+            style="display: flex; flex-direction: column; gap: var(--space-2); background: var(--color-surface-hover); padding: var(--space-3); border-radius: var(--radius-sm);">
+            <span style="font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold);">Público:</span>
+
+            <div class="toggle-wrapper" style="padding: 0;">
+              <label class="toggle-label" for="serviceAllowsChildren">Crianças</label>
+              <label class="toggle-switch">
+                <input type="checkbox" id="serviceAllowsChildren">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="toggle-wrapper" style="padding: 0;">
+              <label class="toggle-label" for="serviceAllowsAdults">Adultos</label>
+              <label class="toggle-switch">
+                <input type="checkbox" id="serviceAllowsAdults">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <span class="form-error-msg" id="serviceAudienceError">Selecione pelo menos um público para o serviço
+              (Crianças e/ou Adultos).</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="serviceAttendant">Responsável pelo Atendimento</label>
+            <input type="text" id="serviceAttendant" class="form-input"
+              placeholder="Nome do voluntário ou profissional encarregado" maxlength="200">
+            <span class="form-error-msg" id="serviceAttendantError">O nome do responsável é obrigatório (até 200
+              caracteres).</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="serviceDescription">Descrição / Detalhes Operacionais</label>
+            <textarea id="serviceDescription" class="form-textarea"
+              placeholder="Instruções ou regras do posto (até 200 caracteres)" maxlength="200"></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">
+            Cadastrar Serviço
+          </button>
+        </form>
+      </div>
+
+      <!-- Services List -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Serviços Cadastrados</h2>
+          <span class="badge badge-done" id="serviceCountBadge">0</span>
+        </div>
+        <div class="data-list" id="servicesList">
+          <p style="color: var(--color-text-muted); font-size: var(--font-size-sm); text-align: center; padding: 1rem;">
+            Carregando serviços...
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         VIEW 4: EVENTS MANAGEMENT (TELA 2)
+         ==================================================================== -->
+    <section id="tabEvent" class="view-panel">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h1 class="card-title">Gestão de Eventos</h1>
+            <p class="card-subtitle">Cadastre e gerencie as ações sociais da instituição</p>
+          </div>
+        </div>
+
+        <form id="eventForm" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="eventName">Nome do Evento</label>
+            <input type="text" id="eventName" class="form-input" placeholder="Ex: Ação Social Dia das Crianças"
+              maxlength="50">
+            <span class="form-error-msg" id="eventNameError">O nome do evento é obrigatório (até 50 caracteres).</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="eventDate">Data de Realização</label>
+            <input type="date" id="eventDate" class="form-input">
+            <span class="form-error-msg" id="eventDateError">A data do evento é obrigatória.</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="eventLocation">Local / Endereço</label>
+            <input type="text" id="eventLocation" class="form-input" placeholder="Ex: Quadra Comunitária Vila Esperança"
+              maxlength="150">
+            <span class="form-error-msg" id="eventLocationError">O local do evento é obrigatório.</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="eventDescription">Descrição do Evento</label>
+            <textarea id="eventDescription" class="form-textarea"
+              placeholder="Informações gerais e objetivos da ação..." maxlength="300"></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">
+            Criar Evento
+          </button>
+        </form>
+      </div>
+
+      <!-- Events List -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Eventos Cadastrados</h2>
+          <span class="badge badge-done" id="eventCountBadge">0</span>
+        </div>
+        <div class="data-list" id="eventsList">
+          <p style="color: var(--color-text-muted); font-size: var(--font-size-sm); text-align: center; padding: 1rem;">
+            Carregando eventos...
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         VIEW 5: DASHBOARD ANALÍTICO
+         ==================================================================== -->
+    <section id="tabDashboard" class="view-panel" style="position:relative;">
+
+      <!-- Loading Overlay -->
+      <div id="dashLoadingOverlay"
+        style="display:none; position:absolute; inset:0; background:rgba(248,250,252,.75); z-index:50; align-items:center; justify-content:center; flex-direction:column; gap:8px;">
+        <div class="dash-spinner"></div>
+        <span style="font-size:var(--font-size-sm); color:var(--color-text-muted);">Carregando dados...</span>
+      </div>
+
+      <!-- Dashboard Header & Filters -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h1 class="card-title">Painel Analítico</h1>
+            <p class="card-subtitle">Indicadores consolidados de participação e atendimento</p>
+          </div>
+          <div style="display:flex; gap:var(--space-2); align-items:center; flex-wrap:wrap;">
+            <span style="font-size:var(--font-size-xs); color:var(--color-text-muted);">
+              Atualizado: <strong id="dashLastUpdated">--:--</strong>
+            </span>
+            <button type="button" class="btn btn-secondary" id="dashBtnRefresh"
+              style="min-height:32px; padding:2px 10px; font-size:var(--font-size-xs);">
+              🔄 Atualizar
+            </button>
+          </div>
+        </div>
+
+        <div id="dashFilterBadge" class="dash-filter-badge dash-filter-badge--neutral">
+          Exibindo totais gerais de todos os eventos
+        </div>
+
+        <div class="dash-filters">
+          <div class="form-group" style="margin:0;">
+            <label class="form-label" for="dashFilterEvent">🎉 Evento</label>
+            <select id="dashFilterEvent" class="form-select">
+              <option value="">Todos os Eventos</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label" for="dashFilterService">🎯 Serviço</label>
+            <select id="dashFilterService" class="form-select">
+              <option value="">Todos os Serviços</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label" for="dashFilterGender">⚧️ Gênero</label>
+            <select id="dashFilterGender" class="form-select">
+              <option value="">Todos</option>
+              <option value="Feminino">Feminino</option>
+              <option value="Masculino">Masculino</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label" for="dashFilterPublic">👶 Público</label>
+            <select id="dashFilterPublic" class="form-select">
+              <option value="">Todos</option>
+              <option value="children">Crianças</option>
+              <option value="adults">Adultos</option>
+            </select>
+          </div>
+          <button type="button" class="btn btn-secondary" id="dashBtnClearFilters"
+            style="align-self:flex-end; min-height:40px; font-size:var(--font-size-xs);">
+            ✕ Limpar
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI Grid -->
+      <div class="dash-kpi-grid">
+        <div class="dash-kpi-card">
+          <div class="dash-kpi-icon">👥</div>
+          <div class="dash-kpi-value" id="dashKpiVisitors">–</div>
+          <div class="dash-kpi-label">Total de Visitantes</div>
+        </div>
+        <div class="dash-kpi-card">
+          <div class="dash-kpi-icon">⚡</div>
+          <div class="dash-kpi-value" id="dashKpiAttendances">–</div>
+          <div class="dash-kpi-label">Atendimentos Realizados</div>
+        </div>
+        <div class="dash-kpi-card dash-kpi-card--accent">
+          <div class="dash-kpi-icon">🎯</div>
+          <div class="dash-kpi-value" id="dashKpiCoverage">–</div>
+          <div class="dash-kpi-label">Taxa de Cobertura</div>
+          <div class="dash-kpi-sub" id="dashKpiCoverageSub"></div>
+        </div>
+        <div class="dash-kpi-card">
+          <div class="dash-kpi-icon">📈</div>
+          <div class="dash-kpi-value" id="dashKpiAvgAttendances">–</div>
+          <div class="dash-kpi-label">Média Atend. / Participante</div>
+        </div>
+        <div class="dash-kpi-card">
+          <div class="dash-kpi-icon">👨‍👧</div>
+          <div class="dash-kpi-value" id="dashKpiGuardian">–</div>
+          <div class="dash-kpi-label">Média Crianças / Responsável</div>
+          <div class="dash-kpi-sub" id="dashKpiGuardianSub"></div>
+        </div>
+      </div>
+
+      <!-- Row 1: Proporção Público + Ranking de Serviços -->
+      <div class="dash-charts-row">
+        <div class="card dash-chart-card">
+          <div class="card-header" style="padding-bottom:var(--space-2);">
+            <h2 class="card-title" style="font-size:var(--font-size-base);">👶 Público: Crianças vs Adultos</h2>
+          </div>
+          <div class="dash-pubprop">
+            <div class="dash-pubprop-col dash-pubprop-col--children">
+              <span class="dash-pubprop-count" id="dashChildCount">–</span>
+              <span class="dash-pubprop-label">Crianças</span>
+              <span class="dash-pubprop-pct" id="dashChildPct">–</span>
+            </div>
+            <div class="dash-pubprop-col dash-pubprop-col--adults">
+              <span class="dash-pubprop-count" id="dashAdultCount">–</span>
+              <span class="dash-pubprop-label">Adultos</span>
+              <span class="dash-pubprop-pct" id="dashAdultPct">–</span>
+            </div>
+          </div>
+          <div id="dashPublicBar" class="dash-pub-bar"></div>
+        </div>
+
+        <div class="card dash-chart-card dash-chart-card--wide">
+          <div class="card-header" style="padding-bottom:var(--space-2);">
+            <h2 class="card-title" style="font-size:var(--font-size-base);">🏆 Ranking de Serviços</h2>
+          </div>
+          <div id="dashServiceRanking" class="dash-ranking">
+            <p class="dash-empty">Carregando...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 2: Gênero + Faixa Etária -->
+      <div class="dash-charts-row">
+        <div class="card dash-chart-card">
+          <div class="card-header" style="padding-bottom:var(--space-2);">
+            <h2 class="card-title" style="font-size:var(--font-size-base);">⚧️ Distribuição por Gênero</h2>
+          </div>
+          <div id="dashGenderChart" class="dash-demo-list">
+            <p class="dash-empty">Carregando...</p>
+          </div>
+        </div>
+        <div class="card dash-chart-card">
+          <div class="card-header" style="padding-bottom:var(--space-2);">
+            <h2 class="card-title" style="font-size:var(--font-size-base);">📊 Distribuição por Faixa Etária</h2>
+          </div>
+          <div id="dashAgeChart" class="dash-demo-list">
+            <p class="dash-empty">Carregando...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 3: Fluxo por Hora + Acessibilidade Digital -->
+      <div class="dash-charts-row">
+        <div class="card dash-chart-card dash-chart-card--wide">
+          <div class="card-header" style="padding-bottom:var(--space-2);">
+            <h2 class="card-title" style="font-size:var(--font-size-base);">⏰ Fluxo de Atendimentos por Hora</h2>
+          </div>
+          <div id="dashHourlyChart">
+            <p class="dash-empty">Carregando...</p>
+          </div>
+        </div>
+        <div class="card dash-chart-card">
+          <div class="card-header" style="padding-bottom:var(--space-2);">
+            <h2 class="card-title" style="font-size:var(--font-size-base);">📱 Acessibilidade Digital</h2>
+            <span class="badge" id="dashPhoneRate"
+              style="background:var(--color-primary-light); color:var(--color-primary);">–</span>
+          </div>
+          <div class="dash-pubprop">
+            <div class="dash-pubprop-col">
+              <span class="dash-pubprop-count dash-pubprop-count--phone" id="dashPhoneWithCount">–</span>
+              <span class="dash-pubprop-label">Com telefone</span>
+            </div>
+            <div class="dash-pubprop-col">
+              <span class="dash-pubprop-count dash-pubprop-count--nophone" id="dashPhoneWithoutCount">–</span>
+              <span class="dash-pubprop-label">Sem telefone</span>
+            </div>
+          </div>
+          <div id="dashPhoneBar" class="dash-pub-bar"></div>
+          <p
+            style="font-size:var(--font-size-xs); color:var(--color-text-muted); margin-top:var(--space-2); text-align:center;">
+            Base: adultos cadastrados
+          </p>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ====================================================================
+       SESSION CONTEXT MODAL (MANDATORY SELECTION PER SESSION)
+       ==================================================================== -->
+  <div class="modal-backdrop" id="sessionModalBackdrop" role="dialog" aria-modal="true"
+    aria-labelledby="sessionModalTitle">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 class="card-title" id="sessionModalTitle">Definir Sessão de Trabalho</h2>
+      </div>
+      <div class="modal-body">
+        <div id="sessionModalWarning"
+          style="display: none; padding: var(--space-3); background: var(--color-warning-light); border-left: 4px solid var(--color-warning); font-size: var(--font-size-sm); border-radius: var(--radius-sm);">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="sessionSelectEvent">Selecione o Evento Ativo</label>
+          <select id="sessionSelectEvent" class="form-select">
+            <option value="">Carregando eventos...</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="sessionSelectService">Selecione o Serviço Operado</label>
+          <select id="sessionSelectService" class="form-select">
+            <option value="">-- Selecione primeiro o evento --</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="sessionModalClose">Fechar</button>
+        <button type="button" class="btn btn-primary" id="sessionModalSave">Confirmar Sessão</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       LAN WI-FI ACCESS MODAL (MULTI-DEVICE INSTRUCTIONS)
+       ==================================================================== -->
+  <div class="modal-backdrop" id="lanModalBackdrop" role="dialog" aria-modal="true" aria-labelledby="lanModalTitle">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 class="card-title" id="lanModalTitle">📶 Conectar Dispositivos (Rede Wi-Fi)</h2>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: var(--font-size-sm); color: var(--color-text-muted);">
+          Qualquer smartphone, tablet ou computador conectado à mesma rede Wi-Fi desta máquina pode acessar o
+          <strong>GiraFila</strong> e operar simultaneamente com os mesmos dados em tempo real!
+        </p>
+
+        <div id="lanUrlBox"
+          style="background: var(--color-primary-light); border: 1.5px solid var(--color-primary); border-radius: var(--radius-md); padding: var(--space-4); text-align: center; cursor: pointer; user-select: all; transition: transform var(--transition-fast), box-shadow var(--transition-fast);"
+          title="Clique ou toque para copiar">
+          <div
+            style="font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); color: var(--color-primary); text-transform: uppercase; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap;">
+            <span>Endereço na Rede Local</span>
+            <span style="font-size: 0.75rem; opacity: 0.85;">(toque para copiar)</span>
+          </div>
+          <div id="lanUrlDisplay"
+            style="font-size: var(--font-size-xl); font-weight: var(--font-weight-bold); font-family: var(--font-family-mono); color: var(--color-primary); word-break: break-all;">
+            http://192.168.1.7:8080/
+          </div>
+        </div>
+
+        <div style="display: flex; gap: var(--space-2);">
+          <button type="button" class="btn btn-secondary btn-block" id="btnCopyLanUrl" style="font-weight: var(--font-weight-semibold);">
+            📋 Copiar Endereço
+          </button>
+        </div>
+
+        <div
+          style="font-size: var(--font-size-xs); color: var(--color-text-muted); background: #f8fafc; border-radius: var(--radius-sm); padding: var(--space-3); border: 1px solid var(--color-border);">
+          <strong>💡 Como usar em campo:</strong>
+          <ul style="margin-left: var(--space-4); margin-top: 4px; display: flex; flex-direction: column; gap: 4px;">
+            <li>Conecte o smartphone dos voluntários no mesmo Wi-Fi deste computador.</li>
+            <li>Abra o navegador do celular (Chrome, Safari, etc.) e digite o endereço acima.</li>
+            <li>Pronto! Cadastros na recepção e atendimentos nos postos são sincronizados na hora.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="lanModalClose">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- QR Decoder Library (Pure JS, Offline) -->
+  <script src="js/utils/jsQR.js"></script>
+
+  <!-- Application Bootstrap -->
+  <script type="module" src="js/app.js"></script>
+</body>
+
+</html>
