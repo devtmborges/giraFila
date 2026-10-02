@@ -53,8 +53,8 @@ This file is the **navigation index** for all guides inside the `HARNESS/` direc
 
 - **Repository**: GiraFila
 - **Main Branch**: main
-- **Current Version**: 0.5.0-export
-- **Last Updated**: 2026-10-01 — Exportação de dados para planilhas multi-aba XLSX (Visitantes e Atendimentos) protegida por senha mestre SHA-256 e alteração de senha na session-bar.
+- **Current Version**: 0.6.0-context-tags
+- **Last Updated**: 2026-10-02 — Tags clicáveis de contexto ativo (Posto/Serviço em Atendimento e Evento em Recepção) e modais dedicados/exclusivos para definição de Evento e Serviço.
 - **Core Files**:
   - `index.html` — Shell da SPA e navegação principal
   - `css/variables.css` — Design tokens e camadas Z-Index

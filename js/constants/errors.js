@@ -17,6 +17,24 @@ export const ERROR_CATALOG = Object.freeze({
       suggestedAction: 'Abrir o modal de seleção de contexto de sessão.'
     }
   },
+  'GF-SESSION-VAL-002': {
+    userMessage: 'Selecione um evento antes de escolher o serviço.',
+    technicalContext: {
+      summary: 'Tentativa de selecionar serviço sem haver um evento ativo definido na sessão.',
+      commonCauses: ['Usuário clicou para selecionar serviço antes de escolher um evento'],
+      relatedFiles: ['js/views/sessionModal.js'],
+      suggestedAction: 'Selecionar um evento ativo antes de prosseguir com a escolha do serviço.'
+    }
+  },
+  'GF-SESSION-VAL-003': {
+    userMessage: 'Selecione um posto/serviço para continuar.',
+    technicalContext: {
+      summary: 'Nenhum posto/serviço foi selecionado no modal dedicado de serviço.',
+      commonCauses: ['Submissão do modal com dropdown de serviço vazio'],
+      relatedFiles: ['js/views/sessionModal.js'],
+      suggestedAction: 'Escolher um serviço válido na lista antes de salvar.'
+    }
+  },
 
   // Visitor Validation
   'GF-VISIT-VAL-001': {

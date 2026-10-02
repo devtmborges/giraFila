@@ -4,7 +4,7 @@
  */
 
 import { initDb, getAllEvents } from './services/storageService.js';
-import { openSessionModal, updateSessionBar, onSessionChange, getSession } from './views/sessionModal.js';
+import { openSessionModal, openEventModal, openServiceModal, updateSessionBar, onSessionChange, getSession } from './views/sessionModal.js';
 import { initVisitorView } from './views/visitorView.js';
 import { initEventView } from './views/eventView.js';
 import { initServiceView } from './views/serviceView.js';
@@ -79,20 +79,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (window.refreshDashboardView)  window.refreshDashboardView();
   });
 
-  // 5. Context Selection Buttons
+  // 5. Context Selection Buttons (session-bar) — use dedicated modals
   const btnSelectEventContext = document.getElementById('btnSelectEventContext');
   if (btnSelectEventContext) {
-    btnSelectEventContext.addEventListener('click', () => {
-      openSessionModal(false, 'event');
-    });
+    btnSelectEventContext.addEventListener('click', () => openEventModal());
   }
 
   const btnSelectServiceContext = document.getElementById('btnSelectServiceContext');
   if (btnSelectServiceContext) {
-    btnSelectServiceContext.addEventListener('click', () => {
-      openSessionModal(false, 'service');
-    });
+    btnSelectServiceContext.addEventListener('click', () => openServiceModal());
   }
+
+  // 5b. Context tag buttons inside the view cards — use dedicated modals
+  const attendanceServiceTagBtn = document.getElementById('attendanceServiceTagBtn');
+  if (attendanceServiceTagBtn) {
+    attendanceServiceTagBtn.addEventListener('click', () => openServiceModal());
+  }
+
+  const visitorEventTagBtn = document.getElementById('visitorEventTagBtn');
+  if (visitorEventTagBtn) {
+    visitorEventTagBtn.addEventListener('click', () => openEventModal());
+  }
+
+
 
   // 6. LAN Wi-Fi Info Modal
   const btnLanInfo = document.getElementById('btnLanInfo');

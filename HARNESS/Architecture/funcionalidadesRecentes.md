@@ -2,12 +2,24 @@
 
 > Documentação das funcionalidades incluídas na versão atual do GiraFila.
 
-- **Current Version:** v0.4.0-dashboard
-- **Last Updated:** 2026-10-01
+- **Current Version:** v0.6.0-context-tags
+- **Last Updated:** 2026-10-02
 
 ---
 
 ## Feature Overview
+
+### Módulo: Contexto Operacional & Tags de Sessão (v0.6.0)
+- **Tags Clicáveis de Contexto nas Telas**:
+  - `#attendanceServiceTagBtn`: Exibida no cabeçalho do card de Atendimento mostrando o Posto/Serviço ativo.
+  - `#visitorEventTagBtn`: Exibida no cabeçalho do card de Recepção/Visitantes mostrando o Evento ativo.
+  - Estado visual `.is-empty` com destaque em cor de alerta (âmbar com borda tracejada) quando o contexto não estiver selecionado.
+  - Sincronização reativa em tempo real com `updateSessionBar()`.
+- **Modais Exclusivos de Contexto**:
+  - Modal Exclusivo de Evento (`#eventContextModalBackdrop`): Acionado ao clicar nas tags de Evento (`#btnSelectEventContext` e `#visitorEventTagBtn`), permitindo troca ágil do evento com reset do serviço em caso de alteração.
+  - Modal Exclusivo de Serviço (`#serviceContextModalBackdrop`): Acionado ao clicar nas tags de Serviço (`#btnSelectServiceContext` e `#attendanceServiceTagBtn`), exibindo o evento ativo como contexto e listando apenas serviços pertinentes.
+  - Modal combinado original mantido no fluxo de inicialização/recarga forçada (`openSessionModal(forced)`).
+- **Padronização de Nomenclatura**: Adequação de textos na tela de Recepção e KPIs de Atendimento para "Visitante" (em substituição a "Participante").
 
 ### Módulo: Painel Analítico / Dashboard (Tela 5) (v0.4.0)
 - **Filtros Globais Reativos**: Barra superior com filtros de Evento (`#dashFilterEvent`), Serviço (`#dashFilterService`), Gênero (`#dashFilterGender`) e Público (`#dashFilterPublic`). Filtros não alimentados trazem totais gerais consolidados de toda a base.

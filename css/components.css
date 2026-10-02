@@ -1359,3 +1359,92 @@
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
+
+/* ==========================================================================
+   Context Tag Bar — Tags clicáveis de contexto ativo (Atendimento / Recepção)
+   ========================================================================== */
+.context-tag-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+}
+
+.context-tag-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-family: inherit;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: 1.5px solid transparent;
+  line-height: 1.4;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+  /* Estado padrão: contexto selecionado */
+  background-color: var(--color-primary-light);
+  border-color: #93b4f0;
+  color: var(--color-primary);
+}
+
+.context-tag-btn:hover {
+  background-color: #d4e4fc;
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(16, 98, 216, 0.15);
+}
+
+.context-tag-btn:active {
+  transform: translateY(0);
+}
+
+.context-tag-btn .context-tag-icon {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.context-tag-btn .context-tag-label {
+  opacity: 0.75;
+  font-weight: var(--font-weight-medium);
+  margin-right: 1px;
+}
+
+.context-tag-btn .context-tag-value {
+  font-weight: var(--font-weight-bold);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.context-tag-btn .context-tag-action {
+  font-size: 10px;
+  opacity: 0.6;
+  margin-left: 2px;
+  flex-shrink: 0;
+}
+
+/* Estado: nenhum contexto selecionado */
+.context-tag-btn.is-empty {
+  background-color: var(--color-warning-light);
+  border-color: #f5c87a;
+  border-style: dashed;
+  color: #92570c;
+}
+
+.context-tag-btn.is-empty:hover {
+  background-color: #fef0d5;
+  border-color: var(--color-warning);
+  box-shadow: 0 2px 6px rgba(242, 153, 74, 0.2);
+}
+
+.context-tag-btn.is-empty .context-tag-icon {
+  color: var(--color-warning);
+}

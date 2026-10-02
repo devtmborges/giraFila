@@ -29,6 +29,27 @@ Use the following format per version entry:
 
 ---
 
+## v0.6.0 — 2026-10-02 — Context Tags & Modais Exclusivos de Sessão
+
+### Added
+- Tags clicáveis de contexto ativo nas telas de Atendimento (`#attendanceServiceTagBtn`) e Recepção (`#visitorEventTagBtn`) com estado visual vazio/alerta (`.is-empty`).
+- Modais dedicados exclusivos para seleção de Evento (`#eventContextModalBackdrop`) e seleção de Serviço (`#serviceContextModalBackdrop`).
+- Novos códigos de erro no catálogo: `GF-SESSION-VAL-002` e `GF-SESSION-VAL-003`.
+
+### Changed
+- As tags da barra de sessão e das telas agora abrem seus respectivos modais exclusivos, mantendo o modal combinado apenas na carga inicial.
+- Padronização de textos e rótulos da tela de Recepção e Atendimento para o termo 'Visitante'.
+
+---
+
+## v0.5.0 — 2026-10-01 — Exportação XLSX & Proteção por Senha Mestre
+
+### Added
+- Módulo de exportação de dados para planilhas multi-aba XLSX (`xlsxExporter.js`) integrado ao Dashboard.
+- Modal de confirmação com proteção por senha mestre (SHA-256) e diálogo para definição/alteração de senha.
+
+---
+
 ## v0.4.0 — 2026-10-01 — Painel Analítico & Dashboard Demográfico
 
 ### Added
