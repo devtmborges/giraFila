@@ -599,6 +599,49 @@
   }
 }
 
+.data-item--clickable {
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+.data-item--clickable:hover {
+  border-color: var(--color-primary);
+  background-color: #f8fafc;
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.data-item--clickable:active {
+  transform: translateY(0);
+}
+
+.data-item-family-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  color: var(--color-primary);
+  opacity: 0.85;
+  font-weight: var(--font-weight-medium);
+  transition: opacity var(--transition-fast);
+}
+
+.data-item--clickable:hover .data-item-family-hint {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+#attendanceParticipantCard.clickable {
+  cursor: pointer !important;
+  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+#attendanceParticipantCard.clickable:hover {
+  border-color: #4ade80 !important;
+  box-shadow: 0 3px 10px rgba(34, 197, 94, 0.18);
+  transform: translateY(-1px);
+}
+
 .data-item-main {
   display: flex;
   flex-direction: column;
@@ -1447,4 +1490,205 @@
 
 .context-tag-btn.is-empty .context-tag-icon {
   color: var(--color-warning);
+}
+
+/* ==========================================================================
+   Family Group Modal Styles
+   ========================================================================== */
+.family-modal-dialog {
+  max-width: 620px;
+}
+
+.family-modal-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.family-modal-body {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+.family-summary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-2);
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.family-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 70px;
+}
+
+.family-stat-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-semibold);
+}
+
+.family-stat-val {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-main);
+  line-height: 1.2;
+}
+
+.family-stat-val--accent {
+  color: var(--color-accent);
+}
+
+.family-stat-divider {
+  width: 1px;
+  height: 28px;
+  background-color: var(--color-border);
+}
+
+.family-members-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.family-member-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.family-member-card--adult {
+  border-left-color: var(--color-primary);
+  background: linear-gradient(to right, rgba(16, 98, 216, 0.02), var(--color-surface) 30%);
+}
+
+.family-member-card--child {
+  border-left-color: var(--color-warning);
+  background: linear-gradient(to right, rgba(242, 153, 74, 0.03), var(--color-surface) 30%);
+}
+
+.family-member-card--selected {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent-light);
+}
+
+.family-member-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.family-member-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.family-ticket-tag {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  background-color: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-main);
+}
+
+.family-member-name {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-main);
+}
+
+.family-member-meta {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.family-attendance-box {
+  background-color: #fafbfc;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.family-attendance-title {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.family-attendance-empty {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-subtle);
+  font-style: italic;
+}
+
+.family-attendance-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.family-attendance-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--color-accent-light);
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+}
+
+.family-attendance-pill--active {
+  background-color: #dcfce7;
+  border-color: #86efac;
+  font-weight: var(--font-weight-bold);
+}
+
+.family-attendance-pill-time {
+  font-size: 0.7rem;
+  opacity: 0.85;
+}
+
+.family-member-action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 2px;
 }

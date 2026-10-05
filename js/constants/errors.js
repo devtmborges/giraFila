@@ -111,6 +111,15 @@ export const ERROR_CATALOG = Object.freeze({
       suggestedAction: 'Cadastrar o adulto antes ou conferir o número do ticket do responsável.'
     }
   },
+  'GF-VISIT-REG-003': {
+    userMessage: 'Participante ou grupo familiar não encontrado para este evento.',
+    technicalContext: {
+      summary: 'Busca por grupo familiar não retornou nenhum registro vinculado ao ticket ou evento.',
+      commonCauses: ['Ticket inválido, excluído ou não pertencente ao evento atual'],
+      relatedFiles: ['js/views/familyModal.js', 'js/views/visitorView.js', 'js/views/attendanceView.js'],
+      suggestedAction: 'Verificar se o participante está cadastrado no evento selecionado.'
+    }
+  },
 
   // Event Validation
   'GF-EVENT-VAL-001': {
@@ -251,13 +260,22 @@ export const ERROR_CATALOG = Object.freeze({
   },
 
   // Visitor Business Rules (extended)
-  'GF-VISIT-REG-003': {
-    userMessage: 'Não foi possível salvar: o QR Code informado já está em uso por outro participante neste evento.',
+  'GF-VISIT-REG-004': {
+    userMessage: 'Não é possível excluir este participante pois já possui atendimentos registrados neste evento.',
     technicalContext: {
-      summary: 'Conflito de QR Code durante edição de visitante.',
-      commonCauses: ['QR Code alterado para valor já atribuído a outro participante no mesmo evento'],
+      summary: 'Tentativa de exclusão de visitante com atendimentos vinculados ao evento ativo.',
+      commonCauses: ['Visitante atendido em um ou mais postos/serviços do evento atual'],
       relatedFiles: ['js/views/visitorView.js', 'js/services/storageService.js'],
-      suggestedAction: 'Usar um número de ticket disponível.'
+      suggestedAction: 'Excluir os atendimentos vinculados ao visitante antes de removê-lo, ou não o remover.'
+    }
+  },
+  'GF-VISIT-REG-005': {
+    userMessage: 'Não é possível excluir este participante pois ele é o responsável por uma ou mais crianças cadastradas neste evento.',
+    technicalContext: {
+      summary: 'Tentativa de exclusão de adulto responsável que possui crianças vinculadas via guardian_qr_code.',
+      commonCauses: ['Adulto removido antes de remover os dependentes infantis vinculados ao seu ticket'],
+      relatedFiles: ['js/views/visitorView.js', 'js/services/storageService.js'],
+      suggestedAction: 'Excluir ou desvincular as crianças dependentes antes de remover o adulto responsável.'
     }
   },
 

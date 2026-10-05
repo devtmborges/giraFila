@@ -2,12 +2,39 @@
 
 > Documentação das funcionalidades incluídas na versão atual do GiraFila.
 
-- **Current Version:** v0.6.0-context-tags
+- **Current Version:** v0.7.0-family-modal
 - **Last Updated:** 2026-10-02
 
 ---
 
 ## Feature Overview
+
+### Módulo: Visualização de Grupo Familiar & Histórico de Atendimentos (v0.7.0)
+- **Cards Interativos e Clicáveis**:
+  - Na tela de **Recepção/Visitantes** (`#registeredVisitorsList`): Cards `.data-item--clickable` com indicação visual (`.data-item-family-hint`), permitindo abrir a visão familiar completa sem interferir nos botões de edição e exclusão.
+  - Na tela de **Atendimento**:
+    - `#attendanceParticipantCard`: O card de prévia dinâmica exibido ao digitar ou escanear o ticket passa a ser interativo e clicável, permitindo ao operador conferir a família do participante em atendimento.
+    - `#recentAttendancesList`: Cards de histórico recente no posto passam a ser clicáveis para rápida consulta do grupo familiar.
+- **Modal de Grupo Familiar (`familyModal.js`)**:
+  - Resumo de métricas da família: Total de membros, contagem de adultos, contagem de crianças e total de atendimentos realizados pelo grupo no evento.
+  - Cartões detalhados por membro com diferenciação visual entre **Adulto Responsável** e **Criança / Dependente**.
+  - Histórico transparente de atendimentos no evento por participante (postos frequentados e horários).
+  - Ação operacional rápida no modo de atendimento: botão "Atender Ticket #..." para carregar o participante diretamente no fluxo de atendimento com um único clique.
+  - **Fechamento Ergonômico**: O modal fecha automaticamente ao clicar fora da área do diálogo (no backdrop), ao pressionar a tecla `ESC` ou ao clicar nos botões de fechar.
+- **Governança de Erros**: Registro e uso dos códigos `GF-VISIT-REG-003`, `GF-VISIT-REG-004` e `GF-VISIT-REG-005`.
+
+### Módulo: Segurança Operacional & Restrições de Exclusão (v0.7.0)
+- **Bloqueio de Exclusão com Vínculos Ativos**:
+  - Visitantes com atendimentos registrados no evento ativo não podem ser excluídos (`GF-VISIT-REG-004`).
+  - Visitantes adultos que sejam responsáveis por crianças cadastradas no evento ativo não podem ser excluídos (`GF-VISIT-REG-005`).
+  - Validações implementadas tanto no frontend (`visitorView.js`) quanto na API backend (`api.php`).
+- **Autenticação via Senha Mestre para Exclusões**:
+  - Exclusão de Visitantes (`confirmDeleteVisitor`), Eventos (`confirmDeleteEvent`) e Serviços (`confirmDeleteService`) passam a exigir a digitação da senha mestre configurada no sistema via `verifyPassword()`.
+  - Campo inline de senha com auto-foco, suporte a tecla Enter para confirmação rápida e feedback visual com classes `.form-input--error`.
+- **Interface e Ergonomia do Scanner de Câmera**:
+  - Ocultação dos botões de escanear câmera (`#btnScanQr`, `#btnScanVisitorQr`, `#btnScanGuardianQr`) via estilo inline `display: none`, mantendo os elementos no DOM para rápida reativação futura e priorizando digitação do número de ticket.
+- **Correção de Timezone Operacional**:
+  - Implementação de `formatUtcDisplayDateTime` em `sanitizer.js` para renderizar timestamps operacionais (`created_at`) no fuso local do usuário sem offset indevido de +3h.
 
 ### Módulo: Contexto Operacional & Tags de Sessão (v0.6.0)
 - **Tags Clicáveis de Contexto nas Telas**:

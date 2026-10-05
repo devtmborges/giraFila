@@ -384,6 +384,48 @@ try {
                 echo json_encode($row ?: null);
             } elseif ($method === 'DELETE') {
                 $id = (int)($_GET['id'] ?? 0);
+                
+                $vStmt = $pdo->prepare("SELECT * FROM visitors WHERE id = :id LIMIT 1");
+                $vStmt->execute([':id' => $id]);
+                $visitor = $vStmt->fetch();
+                if (!$visitor) {
+                    http_response_code(404);
+                    echo json_encode(['error' => 'NOT_FOUND', 'message' => 'Participante não encontrado.']);
+                    exit;
+                }
+
+                // 1. Bloqueio: participante possui atendimentos registrados no evento
+                $checkAtt = $pdo->prepare("SELECT COUNT(*) as cnt FROM attendances WHERE event_id = :event_id AND visitor_qr_code = :qr_code");
+                $checkAtt->execute([
+                    ':event_id' => (int)$visitor['event_id'],
+                    ':qr_code' => (int)$visitor['qr_code']
+                ]);
+                if ($checkAtt->fetch()['cnt'] > 0) {
+                    http_response_code(409);
+                    echo json_encode([
+                        'error' => 'GF-VISIT-REG-004',
+                        'message' => 'Não é possível excluir: participante possui atendimentos registrados.'
+                    ]);
+                    exit;
+                }
+
+                // 2. Bloqueio: participante adulto é responsável por crianças cadastradas
+                if (empty($visitor['is_child'])) {
+                    $checkChildren = $pdo->prepare("SELECT COUNT(*) as cnt FROM visitors WHERE event_id = :event_id AND guardian_qr_code = :qr_code");
+                    $checkChildren->execute([
+                        ':event_id' => (int)$visitor['event_id'],
+                        ':qr_code' => (int)$visitor['qr_code']
+                    ]);
+                    if ($checkChildren->fetch()['cnt'] > 0) {
+                        http_response_code(409);
+                        echo json_encode([
+                            'error' => 'GF-VISIT-REG-005',
+                            'message' => 'Não é possível excluir: adulto é responsável por crianças cadastradas.'
+                        ]);
+                        exit;
+                    }
+                }
+
                 $pdo->prepare("DELETE FROM visitors WHERE id = :id")->execute([':id' => $id]);
                 echo json_encode(['status' => 'deleted', 'id' => $id]);
             }

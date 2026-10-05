@@ -4,12 +4,14 @@
  */
 
 import { getSession } from './sessionModal.js';
-import { createVisitor, getVisitorByQrAndEvent, getVisitorsByEventId, updateVisitor, deleteVisitor, getVisitorById } from '../services/storageService.js';
+import { createVisitor, getVisitorByQrAndEvent, getVisitorsByEventId, updateVisitor, deleteVisitor, getVisitorById, getAttendancesByEventId } from '../services/storageService.js';
+import { verifyPassword } from '../utils/masterPassword.js';
 import { sanitizeText, capitalizeWords, formatPhoneNumber, parseQrTicketNumber } from '../utils/sanitizer.js';
 import { showToast, showSuccess, showErrorModal } from '../services/errorHandler.js';
 import { openNativeCamera } from '../utils/qrScanner.js';
 import { filterVisitorsByFamilyGroup } from '../utils/familySearch.js';
 import { getIcon } from '../utils/icons.js';
+import { openFamilyModal } from './familyModal.js';
 
 export function initVisitorView() {
   const form = document.getElementById('visitorForm');
@@ -296,8 +298,17 @@ export function initVisitorView() {
       if (deleteBtn) {
         const id = Number(deleteBtn.dataset.id);
         const visitor = await getVisitorById(id);
-        if (visitor) confirmDeleteVisitor(visitor);
+        if (visitor) await initiateDeleteVisitor(visitor);
         return;
+      }
+
+      // Clique no card: Abrir modal do grupo familiar
+      const card = e.target.closest('.data-item--clickable');
+      if (card && card.dataset.qr) {
+        const session = getSession();
+        if (session.eventId) {
+          openFamilyModal({ qrCode: card.dataset.qr, eventId: session.eventId });
+        }
       }
     });
   }
@@ -475,6 +486,54 @@ export function initVisitorView() {
     };
   }
 
+  /**
+   * Pre-checks deletion constraints then, if satisfied, shows password-protected confirmation modal.
+   * Constraints:
+   *  1. Visitor must not have any attendances in the active event.
+   *  2. If visitor is an adult, they must not be the guardian of any child in the event.
+   */
+  async function initiateDeleteVisitor(visitor) {
+    const session = getSession();
+    const eventId = session.eventId;
+
+    // --- Constraint 1: attendances check ---
+    let attendances = [];
+    try {
+      attendances = await getAttendancesByEventId(eventId);
+    } catch {
+      showToast('GF-SYSTEM-SYS-001', 'error');
+      return;
+    }
+    const hasAttendances = attendances.some(
+      att => Number(att.visitor_qr_code) === Number(visitor.qr_code)
+    );
+    if (hasAttendances) {
+      showToast('GF-VISIT-REG-004', 'warning');
+      return;
+    }
+
+    // --- Constraint 2: guardian check (only for adults) ---
+    if (!visitor.is_child) {
+      let allVisitors = [];
+      try {
+        allVisitors = await getVisitorsByEventId(eventId);
+      } catch {
+        showToast('GF-SYSTEM-SYS-001', 'error');
+        return;
+      }
+      const hasChildren = allVisitors.some(
+        v => v.is_child && Number(v.guardian_qr_code) === Number(visitor.qr_code)
+      );
+      if (hasChildren) {
+        showToast('GF-VISIT-REG-005', 'warning');
+        return;
+      }
+    }
+
+    // --- All constraints passed: show password-protected confirmation modal ---
+    confirmDeleteVisitor(visitor);
+  }
+
   function confirmDeleteVisitor(visitor) {
     const backdrop = document.createElement('div');
     backdrop.className = 'modal-backdrop active';
@@ -491,10 +550,25 @@ export function initVisitorView() {
         <div class="modal-body">
           <p style="font-size: var(--font-size-base);">Deseja realmente excluir o participante <strong>${escapeHtml(visitor.name)}</strong> (Ticket #${visitor.qr_code})?</p>
           <p style="font-size: var(--font-size-sm); color: var(--color-text-muted);">Esta ação não poderá ser desfeita.</p>
+          <div class="form-group" style="margin-top: var(--space-4);">
+            <label class="form-label required" for="deleteVisitorMasterPwd">
+              ${getIcon('lock', 14)}
+              Senha Mestre para Confirmar
+            </label>
+            <input
+              type="password"
+              id="deleteVisitorMasterPwd"
+              class="form-input"
+              placeholder="Digite a senha mestre..."
+              autocomplete="current-password"
+              aria-label="Senha mestre para confirmar exclusão"
+            />
+            <span class="form-error-msg" id="deleteVisitorMasterPwdError"></span>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" id="btnCancelDeleteVisitor">Cancelar</button>
-          <button type="button" class="btn btn-danger" id="btnConfirmDeleteVisitor">Excluir</button>
+          <button type="button" class="btn btn-danger" id="btnConfirmDeleteVisitor">${getIcon('trash', 14)} Excluir</button>
         </div>
       </div>
     `;
@@ -502,9 +576,56 @@ export function initVisitorView() {
     document.body.appendChild(backdrop);
 
     const close = () => backdrop.remove();
+    const pwdInput = backdrop.querySelector('#deleteVisitorMasterPwd');
+    const pwdError = backdrop.querySelector('#deleteVisitorMasterPwdError');
+    const btnConfirm = backdrop.querySelector('#btnConfirmDeleteVisitor');
+
     backdrop.querySelector('#btnCancelDeleteVisitor').onclick = close;
 
-    backdrop.querySelector('#btnConfirmDeleteVisitor').onclick = async () => {
+    // Close on backdrop click
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) close();
+    });
+
+    // Focus password input
+    setTimeout(() => pwdInput && pwdInput.focus(), 50);
+
+    // Clear error on typing
+    if (pwdInput) {
+      pwdInput.addEventListener('input', () => {
+        pwdInput.classList.remove('has-error');
+        if (pwdError) pwdError.textContent = '';
+      });
+      // Allow Enter to confirm
+      pwdInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') btnConfirm.click();
+      });
+    }
+
+    btnConfirm.onclick = async () => {
+      const pwd = pwdInput ? pwdInput.value : '';
+      if (!pwd) {
+        if (pwdInput) pwdInput.classList.add('has-error');
+        if (pwdError) pwdError.textContent = 'Informe a senha mestre para continuar.';
+        return;
+      }
+
+      let isValid = false;
+      try {
+        isValid = await verifyPassword(pwd);
+      } catch {
+        showToast('GF-LOCK-SYS-001', 'error');
+        return;
+      }
+
+      if (!isValid) {
+        if (pwdInput) pwdInput.classList.add('has-error');
+        if (pwdError) pwdError.textContent = 'Senha mestre incorreta. Tente novamente.';
+        pwdInput.value = '';
+        pwdInput.focus();
+        return;
+      }
+
       close();
       try {
         await deleteVisitor(visitor.id);
@@ -539,7 +660,7 @@ export function initVisitorView() {
       const extraInfo = infoParts.length > 0 ? `<span style="font-size: var(--font-size-xs); color: var(--color-text-muted);">• ${infoParts.join(', ')}</span>` : '';
 
       return `
-        <div class="data-item">
+        <div class="data-item data-item--clickable" data-qr="${v.qr_code}" title="Clique para ver todo o grupo familiar">
           <div class="data-item-main">
             <div class="data-item-title">
               <strong>#${v.qr_code}</strong> — ${escapeHtml(v.name)}
@@ -547,6 +668,7 @@ export function initVisitorView() {
             <div class="data-item-meta">
               ${typeBadge}
               ${extraInfo}
+              <span class="data-item-family-hint">${getIcon('users', 12)} Ver família</span>
             </div>
           </div>
           <div class="data-item-actions">

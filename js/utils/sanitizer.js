@@ -104,15 +104,22 @@ export function formatUtcDisplayDate(isoString) {
 }
 
 /**
- * Formats stored timestamp to display with time forcing UTC
+ * Formats stored UTC timestamp to display with local date and time.
+ * Converts UTC ISO timestamp to the user's local timezone (e.g. America/Sao_Paulo),
+ * matching the user's physical wall-clock time.
  * @param {string} isoString 
  * @returns {string}
  */
 export function formatUtcDisplayDateTime(isoString) {
   if (!isoString) return '';
   try {
-    const d = new Date(isoString);
-    return `${d.toLocaleDateString('pt-BR', { timeZone: 'UTC' })} ${d.toLocaleTimeString('pt-BR', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' })}`;
+    const raw = String(isoString).trim();
+    const normalized = (!raw.endsWith('Z') && !raw.includes('+'))
+      ? (raw.includes('T') ? `${raw}Z` : `${raw.replace(' ', 'T')}Z`)
+      : raw;
+    const d = new Date(normalized);
+    if (isNaN(d.getTime())) return isoString;
+    return `${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
   } catch {
     return isoString;
   }

@@ -41,11 +41,24 @@ dt = datetime.fromisoformat(date_str)
 - **Reason:** Forces the client to render the stored UTC value as a wall-clock literal, preventing the client from shifting the time by the local timezone offset.
 
 ```typescript
-// CORRECT (JavaScript):
-const formatted = new Date(storedDate).toLocaleDateString('en-US', { timeZone: 'UTC' });
+// CORRECT (JavaScript - Data de Evento literal):
+const formatted = new Date(storedDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 
-// INCORRECT — will shift by local timezone:
-const wrong = new Date(storedDate).toLocaleDateString('en-US');
+// INCORRECT — will shift by local timezone (pode mudar o dia do evento):
+const wrong = new Date(storedDate).toLocaleDateString('pt-BR');
+```
+
+### Rule 1.3: Operational Timestamps (`created_at`) — Render in Local Time
+
+- For timestamp fields recording the physical moment of an operation (e.g. `attendances.created_at`, `visitors.created_at`), store as standard UTC ISO-8601 (`new Date().toISOString()`), but format for UI display in the user's **local timezone** (without `{ timeZone: 'UTC' }`).
+- **Reason:** Ensures the displayed hour and minute match the user's physical clock in the venue (e.g. UTC-3 in Brazil), eliminating unexpected +3h shifts while preserving precise UTC sorting and persistence.
+
+```typescript
+// CORRECT (JavaScript - Horário operacional de atendimento):
+const display = `${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+
+// INCORRECT — will force UTC/Greenwich time, displaying +3h ahead in Brazil:
+const wrong = d.toLocaleTimeString('pt-BR', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' });
 ```
 
 ---

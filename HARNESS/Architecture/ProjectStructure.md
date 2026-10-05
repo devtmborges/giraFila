@@ -53,8 +53,8 @@ This file is the **navigation index** for all guides inside the `HARNESS/` direc
 
 - **Repository**: GiraFila
 - **Main Branch**: main
-- **Current Version**: 0.6.0-context-tags
-- **Last Updated**: 2026-10-02 — Tags clicáveis de contexto ativo (Posto/Serviço em Atendimento e Evento em Recepção) e modais dedicados/exclusivos para definição de Evento e Serviço.
+- **Current Version**: 0.7.0-family-modal
+- **Last Updated**: 2026-10-05 — Cards de participantes clicáveis com modal de Grupo Familiar, correção de timezone operacional, restrições e senha mestre em exclusões (Visitantes, Eventos e Serviços), e botões de scanner ocultos.
 - **Core Files**:
   - `index.html` — Shell da SPA e navegação principal
   - `css/variables.css` — Design tokens e camadas Z-Index
@@ -72,6 +72,7 @@ This file is the **navigation index** for all guides inside the `HARNESS/` direc
   - `js/utils/masterPassword.js` — Gestão, hashing SHA-256 e persistência da senha mestre de exportação
   - `js/utils/xlsxExporter.js` — Geração e download client-side de planilhas Excel (.xlsx) multi-aba via SheetJS
   - `js/views/sessionModal.js` — Seleção de contexto por sessão (Evento + Serviço)
+  - `js/views/familyModal.js` — Modal de Grupo Familiar: listagem de membros e histórico de atendimentos
   - `js/views/visitorView.js` — Tela 1: Cadastro de Visitantes
   - `js/views/eventView.js` — Tela 2: Gestão de Eventos
   - `js/views/serviceView.js` — Tela 3: Gestão de Serviços (busca preditiva de eventos)

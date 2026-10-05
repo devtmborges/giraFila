@@ -19,6 +19,7 @@ import { showToast, showSuccess, showErrorModal } from '../services/errorHandler
 import { startQrScanner, stopQrScanner } from '../utils/qrScanner.js';
 import { filterVisitorsByFamilyGroup } from '../utils/familySearch.js';
 import { getIcon } from '../utils/icons.js';
+import { openFamilyModal } from './familyModal.js';
 
 export function initAttendanceView() {
   const form = document.getElementById('attendanceForm');
@@ -41,12 +42,15 @@ export function initAttendanceView() {
   let cachedVisitorMap = new Map();
   let cachedAllVisitors = [];
   let searchDebounce = null;
+  let currentPreviewVisitor = null;
 
   // Clear errors on input
   inputQr.addEventListener('input', () => {
     inputQr.classList.remove('has-error');
     const err = document.getElementById('attendanceQrCodeError');
     if (err) err.classList.remove('visible');
+    currentPreviewVisitor = null;
+    participantCard.classList.remove('clickable');
     participantCard.style.display = 'none';
   });
 
@@ -58,6 +62,8 @@ export function initAttendanceView() {
     const qrVal = parseQrTicketNumber(inputQr.value);
 
     if (!session.eventId || !session.serviceId || !qrVal) {
+      currentPreviewVisitor = null;
+      participantCard.classList.remove('clickable');
       participantCard.style.display = 'none';
       return;
     }
@@ -65,20 +71,46 @@ export function initAttendanceView() {
     previewTimeout = setTimeout(async () => {
       const visitor = await getVisitorByQrAndEvent(qrVal, session.eventId);
       if (visitor) {
+        currentPreviewVisitor = visitor;
         participantName.textContent = `#${visitor.qr_code} — ${visitor.name}`;
         const extraDetails = [];
         if (visitor.gender) extraDetails.push(visitor.gender);
         if (visitor.age !== null && visitor.age !== undefined && visitor.age !== '') extraDetails.push(`${visitor.age} anos`);
         const extraText = extraDetails.length > 0 ? ` (${extraDetails.join(', ')})` : '';
 
-        participantMeta.textContent = visitor.is_child
+        const metaText = visitor.is_child
           ? `Criança${extraText} (Responsável: #${visitor.guardian_qr_code})`
           : `Adulto${extraText} ${visitor.has_phone ? '• Tel: ' + visitor.phone : '• Sem telefone'}`;
+
+        participantMeta.innerHTML = `
+          <span>${escapeHtml(metaText)}</span>
+          <span class="data-item-family-hint" style="margin-top: 4px;">${getIcon('users', 12)} Ver grupo familiar completo</span>
+        `;
+        participantCard.classList.add('clickable');
+        participantCard.title = 'Clique para ver o grupo familiar completo e histórico de atendimentos';
         participantCard.style.display = 'flex';
       } else {
+        currentPreviewVisitor = null;
+        participantCard.classList.remove('clickable');
         participantCard.style.display = 'none';
       }
     }, 250);
+  });
+
+  // Clique no card de prévia para abrir o grupo familiar
+  participantCard.addEventListener('click', () => {
+    if (!currentPreviewVisitor) return;
+    const session = getSession();
+    if (!session.eventId) return;
+    openFamilyModal({
+      qrCode: currentPreviewVisitor.qr_code,
+      eventId: session.eventId,
+      currentServiceId: session.serviceId,
+      onSelectTicket: (qr) => {
+        inputQr.value = qr;
+        inputQr.dispatchEvent(new Event('input'));
+      }
+    });
   });
 
   // Camera QR Scanner Toggle
@@ -185,6 +217,8 @@ export function initAttendanceView() {
 
       // Reset
       inputQr.value = '';
+      currentPreviewVisitor = null;
+      participantCard.classList.remove('clickable');
       participantCard.style.display = 'none';
       inputQr.focus();
 
@@ -198,7 +232,7 @@ export function initAttendanceView() {
     }
   });
 
-  // Delegated action on recent attendances list (Delete)
+  // Delegated action on recent attendances list (Delete or Family Modal)
   if (recentAttendancesList) {
     recentAttendancesList.addEventListener('click', async (e) => {
       const deleteBtn = e.target.closest('[data-action="delete-attendance"]');
@@ -211,6 +245,24 @@ export function initAttendanceView() {
           const visitor = visitors.find(v => v.qr_code === att.visitor_qr_code);
           const visitorName = visitor ? visitor.name : `Ticket #${att.visitor_qr_code}`;
           confirmDeleteAttendance(att, visitorName);
+        }
+        return;
+      }
+
+      // Clique no card de atendimento: Abrir modal do grupo familiar
+      const card = e.target.closest('.data-item--clickable');
+      if (card && card.dataset.qr) {
+        const session = getSession();
+        if (session.eventId) {
+          openFamilyModal({
+            qrCode: card.dataset.qr,
+            eventId: session.eventId,
+            currentServiceId: session.serviceId,
+            onSelectTicket: (qr) => {
+              inputQr.value = qr;
+              inputQr.dispatchEvent(new Event('input'));
+            }
+          });
         }
       }
     });
@@ -283,7 +335,7 @@ export function initAttendanceView() {
       const extraInfo = infoParts.length > 0 ? `<span style="font-size: var(--font-size-xs); color: var(--color-text-muted);">• ${infoParts.join(' • ')}</span>` : '';
 
       return `
-        <div class="data-item">
+        <div class="data-item data-item--clickable" data-qr="${att.visitor_qr_code}" title="Clique para ver o grupo familiar e histórico">
           <div class="data-item-main">
             <div class="data-item-title">
               <strong>#${att.visitor_qr_code}</strong> — ${escapeHtml(name)} ${typeBadge} ${extraInfo}
@@ -291,6 +343,7 @@ export function initAttendanceView() {
             <div class="data-item-meta">
               <span>${getIcon('clock', 13)} ${formatUtcDisplayDateTime(att.created_at)}</span>
               <span class="badge badge-done">Atendido</span>
+              <span class="data-item-family-hint">${getIcon('users', 12)} Ver família</span>
             </div>
           </div>
           <div class="data-item-actions">

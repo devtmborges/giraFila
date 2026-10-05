@@ -8,6 +8,7 @@ import { sanitizeText, capitalizeWords, formatUtcDisplayDate } from '../utils/sa
 import { showToast, showSuccess, showErrorModal } from '../services/errorHandler.js';
 import { getSession, openSessionModal, clearSessionIfMatches, updateSessionNames } from './sessionModal.js';
 import { getIcon } from '../utils/icons.js';
+import { verifyPassword } from '../utils/masterPassword.js';
 
 export function initEventView() {
   const form = document.getElementById('eventForm');
@@ -233,10 +234,25 @@ export function initEventView() {
         <div class="modal-body">
           <p style="font-size: var(--font-size-base);">Deseja realmente excluir o evento <strong>${escapeHtml(ev.name)}</strong>?</p>
           <p style="font-size: var(--font-size-sm); color: var(--color-text-muted);">Esta ação não poderá ser desfeita.</p>
+          <div class="form-group" style="margin-top: var(--space-4);">
+            <label class="form-label required" for="deleteEventMasterPwd">
+              ${getIcon('lock', 14)}
+              Senha Mestre para Confirmar
+            </label>
+            <input
+              type="password"
+              id="deleteEventMasterPwd"
+              class="form-input"
+              placeholder="Digite a senha mestre..."
+              autocomplete="current-password"
+              aria-label="Senha mestre para confirmar exclusão do evento"
+            />
+            <span class="form-error-msg" id="deleteEventMasterPwdError"></span>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" id="btnCancelDelete">Cancelar</button>
-          <button type="button" class="btn btn-danger" id="btnConfirmDelete">Excluir</button>
+          <button type="button" class="btn btn-danger" id="btnConfirmDelete">${getIcon('trash', 14)} Excluir</button>
         </div>
       </div>
     `;
@@ -244,9 +260,55 @@ export function initEventView() {
     document.body.appendChild(backdrop);
 
     const close = () => backdrop.remove();
+    const pwdInput = backdrop.querySelector('#deleteEventMasterPwd');
+    const pwdError = backdrop.querySelector('#deleteEventMasterPwdError');
+    const btnConfirm = backdrop.querySelector('#btnConfirmDelete');
+
     backdrop.querySelector('#btnCancelDelete').onclick = close;
 
-    backdrop.querySelector('#btnConfirmDelete').onclick = async () => {
+    // Close on backdrop click
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) close();
+    });
+
+    // Focus password input
+    setTimeout(() => pwdInput && pwdInput.focus(), 50);
+
+    // Clear error on typing
+    if (pwdInput) {
+      pwdInput.addEventListener('input', () => {
+        pwdInput.classList.remove('has-error');
+        if (pwdError) pwdError.textContent = '';
+      });
+      pwdInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') btnConfirm.click();
+      });
+    }
+
+    btnConfirm.onclick = async () => {
+      const pwd = pwdInput ? pwdInput.value : '';
+      if (!pwd) {
+        if (pwdInput) pwdInput.classList.add('has-error');
+        if (pwdError) pwdError.textContent = 'Informe a senha mestre para continuar.';
+        return;
+      }
+
+      let isValid = false;
+      try {
+        isValid = await verifyPassword(pwd);
+      } catch {
+        showToast('GF-LOCK-SYS-001', 'error');
+        return;
+      }
+
+      if (!isValid) {
+        if (pwdInput) pwdInput.classList.add('has-error');
+        if (pwdError) pwdError.textContent = 'Senha mestre incorreta. Tente novamente.';
+        pwdInput.value = '';
+        pwdInput.focus();
+        return;
+      }
+
       close();
       try {
         await deleteEvent(ev.id);
