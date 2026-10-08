@@ -222,7 +222,6 @@ export async function deleteEvent(id) {
       throw err;
     }
     if (!res.ok) throw new Error('API_ERROR');
-    logAudit({ entity: 'events', record_id: id, action: 'DELETE', before, after: null });
     return;
   }
 
@@ -244,13 +243,25 @@ export async function deleteEvent(id) {
   }
 
   return new Promise((resolve, reject) => {
-    const tx = db.transaction('events', 'readwrite');
+    const tx = db.transaction(['events', 'audit_logs'], 'readwrite');
     const store = tx.objectStore('events');
-    const req = store.delete(Number(id));
-    req.onsuccess = () => {
-      logAudit({ entity: 'events', record_id: id, action: 'DELETE', before, after: null });
-      resolve();
+    const auditStore = tx.objectStore('audit_logs');
+
+    // Purge any audit_logs referencing this deleted event
+    const auditIndex = auditStore.index('entity');
+    const reqLogs = auditIndex.openCursor(IDBKeyRange.only('events'));
+    reqLogs.onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (cursor) {
+        if (String(cursor.value.record_id) === String(id)) {
+          cursor.delete();
+        }
+        cursor.continue();
+      }
     };
+
+    const req = store.delete(Number(id));
+    req.onsuccess = () => resolve();
     req.onerror = () => reject(req.error);
   });
 }
@@ -408,7 +419,6 @@ export async function deleteService(id) {
       throw err;
     }
     if (!res.ok) throw new Error('API_ERROR');
-    logAudit({ entity: 'services', record_id: id, action: 'DELETE', before, after: null });
     return;
   }
 
@@ -430,13 +440,25 @@ export async function deleteService(id) {
   }
 
   return new Promise((resolve, reject) => {
-    const tx = db.transaction('services', 'readwrite');
+    const tx = db.transaction(['services', 'audit_logs'], 'readwrite');
     const store = tx.objectStore('services');
-    const req = store.delete(Number(id));
-    req.onsuccess = () => {
-      logAudit({ entity: 'services', record_id: id, action: 'DELETE', before, after: null });
-      resolve();
+    const auditStore = tx.objectStore('audit_logs');
+
+    // Purge any audit_logs referencing this deleted service
+    const auditIndex = auditStore.index('entity');
+    const reqLogs = auditIndex.openCursor(IDBKeyRange.only('services'));
+    reqLogs.onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (cursor) {
+        if (String(cursor.value.record_id) === String(id)) {
+          cursor.delete();
+        }
+        cursor.continue();
+      }
     };
+
+    const req = store.delete(Number(id));
+    req.onsuccess = () => resolve();
     req.onerror = () => reject(req.error);
   });
 }
@@ -478,7 +500,7 @@ export async function createVisitor({ event_id, qr_code, name, gender, age, is_c
     is_child: Boolean(is_child),
     phone: is_child ? null : (has_phone ? phone : null),
     has_phone: is_child ? false : Boolean(has_phone),
-    guardian_qr_code: is_child ? Number(guardian_qr_code) : null,
+    guardian_qr_code: (guardian_qr_code !== null && guardian_qr_code !== undefined && guardian_qr_code !== '') ? Number(guardian_qr_code) : null,
     created_at: toLiteralUtcIso(new Date().toISOString())
   };
 
@@ -628,19 +650,30 @@ export async function deleteVisitor(id) {
   if (isLan) {
     const res = await fetch(`api.php?entity=visitors&id=${Number(id)}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('API_ERROR');
-    logAudit({ entity: 'visitors', record_id: id, action: 'DELETE', before, after: null });
     return;
   }
 
   await initDb();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction('visitors', 'readwrite');
+    const tx = db.transaction(['visitors', 'audit_logs'], 'readwrite');
     const store = tx.objectStore('visitors');
-    const req = store.delete(Number(id));
-    req.onsuccess = () => {
-      logAudit({ entity: 'visitors', record_id: id, action: 'DELETE', before, after: null });
-      resolve();
+    const auditStore = tx.objectStore('audit_logs');
+
+    // Purge any audit_logs referencing this deleted visitor
+    const auditIndex = auditStore.index('entity');
+    const reqLogs = auditIndex.openCursor(IDBKeyRange.only('visitors'));
+    reqLogs.onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (cursor) {
+        if (String(cursor.value.record_id) === String(id)) {
+          cursor.delete();
+        }
+        cursor.continue();
+      }
     };
+
+    const req = store.delete(Number(id));
+    req.onsuccess = () => resolve();
     req.onerror = () => reject(req.error);
   });
 }
@@ -876,19 +909,131 @@ export async function deleteAttendance(id) {
   if (isLan) {
     const res = await fetch(`api.php?entity=attendances&id=${Number(id)}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('API_ERROR');
-    logAudit({ entity: 'attendances', record_id: id, action: 'DELETE', before, after: null });
     return;
   }
 
   await initDb();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction('attendances', 'readwrite');
+    const tx = db.transaction(['attendances', 'audit_logs'], 'readwrite');
     const store = tx.objectStore('attendances');
-    const req = store.delete(Number(id));
-    req.onsuccess = () => {
-      logAudit({ entity: 'attendances', record_id: id, action: 'DELETE', before, after: null });
-      resolve();
+    const auditStore = tx.objectStore('audit_logs');
+
+    // Purge any audit_logs referencing this deleted attendance
+    const auditIndex = auditStore.index('entity');
+    const reqLogs = auditIndex.openCursor(IDBKeyRange.only('attendances'));
+    reqLogs.onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (cursor) {
+        if (String(cursor.value.record_id) === String(id)) {
+          cursor.delete();
+        }
+        cursor.continue();
+      }
     };
+
+    const req = store.delete(Number(id));
+    req.onsuccess = () => resolve();
     req.onerror = () => reject(req.error);
   });
+}
+
+// ---------------------------------------------------------------------------
+// ADMIN — ENTITY COUNTS & BULK PURGE (Secret Menu)
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns current record counts per entity.
+ * @returns {Promise<{events:number, services:number, visitors:number, attendances:number}>}
+ */
+export async function getEntityCounts() {
+  const isLan = await isLanApiAvailable();
+  if (isLan) {
+    const res = await fetch('api.php?entity=counts', { method: 'GET', cache: 'no-store' });
+    if (!res.ok) throw new Error('API_ERROR');
+    return await res.json();
+  }
+
+  await initDb();
+  const count = (storeName) => new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly');
+    const req = tx.objectStore(storeName).count();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+
+  const [events, services, visitors, attendances] = await Promise.all([
+    count('events'), count('services'), count('visitors'), count('attendances')
+  ]);
+  return { events, services, visitors, attendances };
+}
+
+/**
+ * Physically purges selected entity types in the mandatory hierarchical order:
+ * 1º attendances → 2º visitors (dependents first) → 3º services → 4º events
+ * @param {{ attendances?: boolean, visitors?: boolean, services?: boolean, events?: boolean }} options
+ * @returns {Promise<{deleted: {events:number,services:number,visitors:number,attendances:number}}>}
+ */
+export async function purgeEntities({ attendances = false, visitors = false, services = false, events = false }) {
+  const isLan = await isLanApiAvailable();
+
+  if (isLan) {
+    const res = await fetch('api.php?entity=clean', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ attendances, visitors, services, events })
+    });
+    if (!res.ok) throw new Error('API_ERROR');
+    return await res.json();
+  }
+
+  // IndexedDB fallback — respects hierarchical order
+  await initDb();
+
+  const clearStore = (storeName, entityName) => new Promise((resolve, reject) => {
+    const tx = db.transaction([storeName, 'audit_logs'], 'readwrite');
+    const store = tx.objectStore(storeName);
+    const auditStore = tx.objectStore('audit_logs');
+
+    // Purge related audit_logs first
+    const auditIndex = auditStore.index('entity');
+    const reqLogs = auditIndex.openCursor(IDBKeyRange.only(entityName));
+    reqLogs.onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (cursor) { cursor.delete(); cursor.continue(); }
+    };
+
+    const req = store.clear();
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+
+  const clearVisitors = () => new Promise((resolve, reject) => {
+    // 2-pass: dependents first, then roots
+    const tx = db.transaction(['visitors', 'audit_logs'], 'readwrite');
+    const store = tx.objectStore('visitors');
+    const auditStore = tx.objectStore('audit_logs');
+
+    const auditIndex = auditStore.index('entity');
+    const reqLogs = auditIndex.openCursor(IDBKeyRange.only('visitors'));
+    reqLogs.onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (cursor) { cursor.delete(); cursor.continue(); }
+    };
+
+    // Delete all visitors (IndexedDB has no FK constraint — order handled by api.php in LAN mode)
+    const req = store.clear();
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+
+  // 1º Atendimentos
+  if (attendances) await clearStore('attendances', 'attendances');
+  // 2º Visitantes
+  if (visitors) await clearVisitors();
+  // 3º Serviços
+  if (services) await clearStore('services', 'services');
+  // 4º Eventos
+  if (events) await clearStore('events', 'events');
+
+  return { status: 'cleaned' };
 }

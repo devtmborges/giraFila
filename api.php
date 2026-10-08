@@ -21,6 +21,7 @@ try {
     $pdo = new PDO('sqlite:' . $dbPath);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    $pdo->exec("PRAGMA secure_delete = ON;");
 
     // Initialize SQLite tables if not present
     $pdo->exec("
@@ -169,6 +170,8 @@ try {
                     exit;
                 }
                 $pdo->prepare("DELETE FROM events WHERE id = :id")->execute([':id' => $id]);
+                $pdo->prepare("DELETE FROM audit_logs WHERE entity = 'events' AND record_id = :id")->execute([':id' => (string)$id]);
+                $pdo->exec("VACUUM;");
                 echo json_encode(['status' => 'deleted', 'id' => $id]);
             }
             break;
@@ -256,6 +259,8 @@ try {
                     exit;
                 }
                 $pdo->prepare("DELETE FROM services WHERE id = :id")->execute([':id' => $id]);
+                $pdo->prepare("DELETE FROM audit_logs WHERE entity = 'services' AND record_id = :id")->execute([':id' => (string)$id]);
+                $pdo->exec("VACUUM;");
                 echo json_encode(['status' => 'deleted', 'id' => $id]);
             }
             break;
@@ -409,24 +414,24 @@ try {
                     exit;
                 }
 
-                // 2. Bloqueio: participante adulto é responsável por crianças cadastradas
-                if (empty($visitor['is_child'])) {
-                    $checkChildren = $pdo->prepare("SELECT COUNT(*) as cnt FROM visitors WHERE event_id = :event_id AND guardian_qr_code = :qr_code");
-                    $checkChildren->execute([
-                        ':event_id' => (int)$visitor['event_id'],
-                        ':qr_code' => (int)$visitor['qr_code']
+                // 2. Bloqueio: este ticket é referenciado por outro membro familiar (criança ou adulto co-responsável)
+                $checkLinked = $pdo->prepare("SELECT COUNT(*) as cnt FROM visitors WHERE event_id = :event_id AND guardian_qr_code = :qr_code");
+                $checkLinked->execute([
+                    ':event_id' => (int)$visitor['event_id'],
+                    ':qr_code'  => (int)$visitor['qr_code']
+                ]);
+                if ($checkLinked->fetch()['cnt'] > 0) {
+                    http_response_code(409);
+                    echo json_encode([
+                        'error'   => 'GF-VISIT-REG-005',
+                        'message' => 'Não é possível excluir: existem membros familiares vinculados ao ticket deste participante.'
                     ]);
-                    if ($checkChildren->fetch()['cnt'] > 0) {
-                        http_response_code(409);
-                        echo json_encode([
-                            'error' => 'GF-VISIT-REG-005',
-                            'message' => 'Não é possível excluir: adulto é responsável por crianças cadastradas.'
-                        ]);
-                        exit;
-                    }
+                    exit;
                 }
 
                 $pdo->prepare("DELETE FROM visitors WHERE id = :id")->execute([':id' => $id]);
+                $pdo->prepare("DELETE FROM audit_logs WHERE entity = 'visitors' AND record_id = :id")->execute([':id' => (string)$id]);
+                $pdo->exec("VACUUM;");
                 echo json_encode(['status' => 'deleted', 'id' => $id]);
             }
             break;
@@ -530,6 +535,8 @@ try {
             } elseif ($method === 'DELETE') {
                 $id = (int)($_GET['id'] ?? 0);
                 $pdo->prepare("DELETE FROM attendances WHERE id = :id")->execute([':id' => $id]);
+                $pdo->prepare("DELETE FROM audit_logs WHERE entity = 'attendances' AND record_id = :id")->execute([':id' => (string)$id]);
+                $pdo->exec("VACUUM;");
                 echo json_encode(['status' => 'deleted', 'id' => $id]);
             }
             break;
@@ -551,6 +558,85 @@ try {
                 ]);
                 echo json_encode(['status' => 'logged']);
             }
+            break;
+
+        case 'counts':
+            // Returns record counts per entity — used by Secret Menu to populate toggle badges
+            echo json_encode([
+                'events'      => (int)$pdo->query("SELECT COUNT(*) FROM events")->fetchColumn(),
+                'services'    => (int)$pdo->query("SELECT COUNT(*) FROM services")->fetchColumn(),
+                'visitors'    => (int)$pdo->query("SELECT COUNT(*) FROM visitors")->fetchColumn(),
+                'attendances' => (int)$pdo->query("SELECT COUNT(*) FROM attendances")->fetchColumn(),
+            ]);
+            break;
+
+        case 'clean':
+            if ($method !== 'POST') {
+                http_response_code(405);
+                echo json_encode(['error' => 'GF-CLEAN-SYS-001', 'message' => 'Método não permitido.']);
+                break;
+            }
+            $data = getJsonInput();
+            $cleanAttendances = !empty($data['attendances']);
+            $cleanVisitors    = !empty($data['visitors']);
+            $cleanServices    = !empty($data['services']);
+            $cleanEvents      = !empty($data['events']);
+
+            $deleted = ['attendances' => 0, 'visitors' => 0, 'services' => 0, 'events' => 0];
+
+            // 1º — Atendimentos (libera vínculos com visitantes e serviços)
+            if ($cleanAttendances) {
+                $deleted['attendances'] = (int)$pdo->query("SELECT COUNT(*) FROM attendances")->fetchColumn();
+                $pdo->exec("DELETE FROM attendances");
+                $pdo->exec("DELETE FROM audit_logs WHERE entity = 'attendances'");
+            }
+
+            // 2º — Visitantes (um grupo familiar por vez, excluindo primeiro as crianças depois os adultos)
+            if ($cleanVisitors) {
+                $deleted['visitors'] = (int)$pdo->query("SELECT COUNT(*) FROM visitors")->fetchColumn();
+
+                // Identifica grupos familiares que possuem dependentes vinculados
+                $guardians = $pdo->query("SELECT DISTINCT event_id, guardian_qr_code FROM visitors WHERE guardian_qr_code IS NOT NULL")->fetchAll();
+
+                $delChildrenStmt = $pdo->prepare("DELETE FROM visitors WHERE event_id = ? AND guardian_qr_code = ? AND is_child = 1");
+                $delOtherDepsStmt = $pdo->prepare("DELETE FROM visitors WHERE event_id = ? AND guardian_qr_code = ? AND is_child = 0");
+                $delGuardianStmt = $pdo->prepare("DELETE FROM visitors WHERE event_id = ? AND qr_code = ?");
+
+                foreach ($guardians as $g) {
+                    $eventId = $g['event_id'];
+                    $guardianQr = $g['guardian_qr_code'];
+
+                    // Primeiro as crianças do grupo familiar
+                    $delChildrenStmt->execute([$eventId, $guardianQr]);
+                    // Depois adultos dependentes vinculados ao mesmo responsável
+                    $delOtherDepsStmt->execute([$eventId, $guardianQr]);
+                    // Por fim o adulto responsável pelo grupo familiar
+                    $delGuardianStmt->execute([$eventId, $guardianQr]);
+                }
+
+                // Exclui visitantes restantes (sem dependentes ou sem grupo familiar)
+                $pdo->exec("DELETE FROM visitors");
+                $pdo->exec("DELETE FROM audit_logs WHERE entity = 'visitors'");
+            }
+
+            // 3º — Serviços (sem atendimentos restantes)
+            if ($cleanServices) {
+                $deleted['services'] = (int)$pdo->query("SELECT COUNT(*) FROM services")->fetchColumn();
+                $pdo->exec("DELETE FROM services");
+                $pdo->exec("DELETE FROM audit_logs WHERE entity = 'services'");
+            }
+
+            // 4º — Eventos
+            if ($cleanEvents) {
+                $deleted['events'] = (int)$pdo->query("SELECT COUNT(*) FROM events")->fetchColumn();
+                $pdo->exec("DELETE FROM events");
+                $pdo->exec("DELETE FROM audit_logs WHERE entity = 'events'");
+            }
+
+            // Compactação física do arquivo SQLite
+            $pdo->exec("VACUUM;");
+
+            echo json_encode(['status' => 'cleaned', 'deleted' => $deleted]);
             break;
 
         default:

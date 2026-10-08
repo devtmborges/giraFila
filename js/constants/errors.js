@@ -91,6 +91,15 @@ export const ERROR_CATALOG = Object.freeze({
       suggestedAction: 'Exigir seleção de Masculino ou Feminino.'
     }
   },
+  'GF-VISIT-VAL-007': {
+    userMessage: 'Para vincular ao Grupo Familiar, informe o número do ticket do outro adulto (1 a 9999).',
+    technicalContext: {
+      summary: 'Toggle de grupo familiar ativo sem preenchimento válido do ticket do outro adulto.',
+      commonCauses: ['Campo de ticket do outro adulto deixado em branco ou fora do intervalo 1 a 9999'],
+      relatedFiles: ['js/views/visitorView.js'],
+      suggestedAction: 'Exigir preenchimento do ticket do outro adulto da família.'
+    }
+  },
 
   // Visitor Business Rules
   'GF-VISIT-REG-001': {
@@ -118,6 +127,15 @@ export const ERROR_CATALOG = Object.freeze({
       commonCauses: ['Ticket inválido, excluído ou não pertencente ao evento atual'],
       relatedFiles: ['js/views/familyModal.js', 'js/views/visitorView.js', 'js/views/attendanceView.js'],
       suggestedAction: 'Verificar se o participante está cadastrado no evento selecionado.'
+    }
+  },
+  'GF-VISIT-REG-006': {
+    userMessage: 'Vínculo familiar inválido: o ticket informado deve pertencer a outro adulto cadastrado neste evento (não pode ser uma criança nem o próprio participante).',
+    technicalContext: {
+      summary: 'Tentativa de vínculo de adulto a ticket inexistente, a uma criança ou auto-referência.',
+      commonCauses: ['Ticket digitado pertence a uma criança, não existe no evento ou é o mesmo ticket do participante'],
+      relatedFiles: ['js/views/visitorView.js'],
+      suggestedAction: 'Conferir o ticket do outro adulto e garantir que ele já esteja cadastrado.'
     }
   },
 
@@ -270,12 +288,12 @@ export const ERROR_CATALOG = Object.freeze({
     }
   },
   'GF-VISIT-REG-005': {
-    userMessage: 'Não é possível excluir este participante pois ele é o responsável por uma ou mais crianças cadastradas neste evento.',
+    userMessage: 'Não é possível excluir este participante pois existem outros membros familiares (adultos ou crianças) vinculados ao seu ticket neste evento.',
     technicalContext: {
-      summary: 'Tentativa de exclusão de adulto responsável que possui crianças vinculadas via guardian_qr_code.',
-      commonCauses: ['Adulto removido antes de remover os dependentes infantis vinculados ao seu ticket'],
+      summary: 'Tentativa de exclusão de participante que possui dependentes ou outros membros vinculados via guardian_qr_code.',
+      commonCauses: ['Participante removido antes de remover os membros familiares vinculados ao seu ticket'],
       relatedFiles: ['js/views/visitorView.js', 'js/services/storageService.js'],
-      suggestedAction: 'Excluir ou desvincular as crianças dependentes antes de remover o adulto responsável.'
+      suggestedAction: 'Excluir ou desvincular os membros familiares dependentes antes de remover este participante.'
     }
   },
 
@@ -400,6 +418,26 @@ export const ERROR_CATALOG = Object.freeze({
       commonCauses: ['Contexto não seguro (HTTP em IP de rede local sem HTTPS)', 'Navegador muito antigo'],
       relatedFiles: ['js/utils/masterPassword.js'],
       suggestedAction: 'Verificar se o navegador suporta Web Crypto API. Usar contexto HTTPS se possível.'
+    }
+  },
+
+  // Menu Secreto — Limpeza de Dados
+  'GF-CLEAN-VAL-001': {
+    userMessage: 'Selecione ao menos um tipo de registro para realizar a limpeza.',
+    technicalContext: {
+      summary: 'Tentativa de executar limpeza de dados sem nenhum toggle selecionado no Menu Secreto.',
+      commonCauses: ['Todos os toggles de limpeza estão desativados no modal de Menu Secreto'],
+      relatedFiles: ['js/views/secretMenuModal.js'],
+      suggestedAction: 'Ativar ao menos um toggle antes de clicar em Executar Limpeza.'
+    }
+  },
+  'GF-CLEAN-SYS-001': {
+    userMessage: 'Erro ao executar a limpeza de dados no banco de dados. Tente novamente.',
+    technicalContext: {
+      summary: 'Falha durante o expurgo físico de registros no SQLite (api.php) ou no IndexedDB local.',
+      commonCauses: ['Erro na requisição HTTP para api.php?entity=clean', 'Falha de transação no IndexedDB', 'Banco de dados bloqueado por outra operação'],
+      relatedFiles: ['js/views/secretMenuModal.js', 'js/services/storageService.js', 'api.php'],
+      suggestedAction: 'Verificar console do navegador para detalhes da falha. Verificar se o servidor PHP está ativo.'
     }
   }
 });

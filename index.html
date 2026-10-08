@@ -295,20 +295,63 @@
             </label>
           </div>
 
+          <!-- Toggle Grupo Familiar -->
+          <div class="toggle-wrapper"
+            style="background-color: var(--color-surface-hover); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); margin-top: var(--space-2);">
+            <label class="toggle-label" for="visitorIsFamily">
+              <strong>Grupo Familiar</strong>
+              <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">
+                Vincular este adulto a outro adulto já cadastrado na família
+              </div>
+            </label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="visitorIsFamily">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <!-- Dynamic Family Adult Section (When Grupo Familiar = true) -->
+          <div id="visitorFamilyContainer" class="form-group" style="display: none; margin-top: var(--space-3);">
+            <label class="form-label" for="visitorFamilyQr">
+              <span>Vincular a outro adulto?</span>
+              <button type="button" class="btn btn-secondary" id="btnScanFamilyQr"
+                style="display: none; min-height: 28px; padding: 2px 8px; font-size: var(--font-size-xs);">
+                <svg class="icon-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path
+                    d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                  <circle cx="12" cy="13" r="3" />
+                </svg>
+                <span>Escanear</span>
+              </button>
+            </label>
+            <input type="number" id="visitorFamilyQr" class="form-input"
+              placeholder="Digite o número do ticket do outro adulto" min="1" max="9999" inputmode="numeric">
+            <span class="form-error-msg" id="visitorFamilyQrError">Informe o ticket do outro adulto para vincular a família.</span>
+            <div id="visitorFamilyInfo" class="form-error-msg"></div>
+          </div>
+
           <!-- Dynamic Phone Section (When Criança = false) -->
           <div id="visitorPhoneContainer" class="form-group">
-            <label class="form-label" for="visitorPhone">
-              <span>Telefone de Contato</span>
-              <label
-                style="display: flex; align-items: center; gap: 6px; font-weight: normal; font-size: var(--font-size-xs); cursor: pointer;">
-                <input type="checkbox" id="visitorNoPhone">
-                <span>Não possui telefone</span>
-              </label>
-            </label>
+            <label class="form-label" for="visitorPhone">Telefone de Contato</label>
             <input type="tel" id="visitorPhone" class="form-input" placeholder="(XX) XXXXX-XXXX" maxlength="15"
               inputmode="tel">
             <span class="form-error-msg" id="visitorPhoneError">Informe o telefone completo no formato (XX)
               XXXXX-XXXX.</span>
+
+            <div class="toggle-wrapper"
+              style="margin-top: var(--space-2); padding: var(--space-2) var(--space-3); background-color: var(--color-surface-hover); border-radius: var(--radius-sm);">
+              <label class="toggle-label" for="visitorNoPhone" style="cursor: pointer;">
+                <strong>Não possui telefone</strong>
+                <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">
+                  Marque caso o participante não possua número de contato
+                </div>
+              </label>
+              <label class="toggle-switch">
+                <input type="checkbox" id="visitorNoPhone">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
           </div>
 
           <!-- Dynamic Guardian Section (When Criança = true) -->
@@ -539,16 +582,6 @@
                   <path d="M16 16h5v5" />
                 </svg>
                 <span>Atualizar</span>
-              </button>
-              <button type="button" class="btn btn-secondary dash-btn-action" id="dashBtnExport"
-                title="Exportar dados para planilha Excel (.xlsx)">
-                <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                <span>Exportar</span>
               </button>
             </div>
           </div>
@@ -1037,7 +1070,7 @@
         </label>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" id="exportModalBtnCancel">Cancelar</button>
+        <button type="button" class="btn btn-secondary" id="exportModalBtnCancel">Voltar</button>
         <button type="button" class="btn btn-primary" id="exportModalBtnConfirm">Exportar .xlsx</button>
       </div>
     </div>

@@ -21,9 +21,14 @@ export function initVisitorView() {
   const inputGender = document.getElementById('visitorGender');
   const inputAge = document.getElementById('visitorAge');
   const toggleChild = document.getElementById('visitorIsChild');
+  const toggleFamily = document.getElementById('visitorIsFamily');
   const phoneContainer = document.getElementById('visitorPhoneContainer');
   const inputPhone = document.getElementById('visitorPhone');
   const toggleNoPhone = document.getElementById('visitorNoPhone');
+  const familyContainer = document.getElementById('visitorFamilyContainer');
+  const inputFamilyQr = document.getElementById('visitorFamilyQr');
+  const btnScanFamilyQr = document.getElementById('btnScanFamilyQr');
+  const familyInfo = document.getElementById('visitorFamilyInfo');
   const guardianContainer = document.getElementById('visitorGuardianContainer');
   const inputGuardianQr = document.getElementById('visitorGuardianQr');
   const btnScanGuardianQr = document.getElementById('btnScanGuardianQr');
@@ -58,8 +63,18 @@ export function initVisitorView() {
     });
   }
 
+  // Camera scan for family adult ticket
+  if (btnScanFamilyQr) {
+    btnScanFamilyQr.addEventListener('click', () => {
+      openNativeCamera((detectedTicket) => {
+        inputFamilyQr.value = detectedTicket;
+        inputFamilyQr.dispatchEvent(new Event('input'));
+      });
+    });
+  }
+
   // Clear field errors on input
-  const inputs = [inputQrCode, inputName, inputGender, inputAge, inputPhone, inputGuardianQr];
+  const inputs = [inputQrCode, inputName, inputGender, inputAge, inputPhone, inputGuardianQr, inputFamilyQr];
   inputs.forEach(inp => {
     if (!inp) return;
     inp.addEventListener('input', () => {
@@ -84,21 +99,49 @@ export function initVisitorView() {
     e.target.value = formatPhoneNumber(e.target.value);
   });
 
-  // Toggle child vs adult dynamic display
+  // Toggle child vs adult dynamic display (three-state: child / family / solo adult)
   const updateVisibility = () => {
     const isChild = toggleChild.checked;
+    const isFamily = toggleFamily.checked;
+
     if (isChild) {
+      // Child mode: hide phone and family link; show guardian section
       phoneContainer.style.display = 'none';
+      familyContainer.style.display = 'none';
       guardianContainer.style.display = 'flex';
-    } else {
+      // Clear family state
+      if (familyInfo) { familyInfo.textContent = ''; familyInfo.className = 'form-error-msg'; }
+      if (inputFamilyQr) inputFamilyQr.value = '';
+    } else if (isFamily) {
+      // Family adult mode: show phone + family link; hide guardian section
       phoneContainer.style.display = 'flex';
+      familyContainer.style.display = 'flex';
       guardianContainer.style.display = 'none';
-      guardianInfo.textContent = '';
-      guardianInfo.className = 'form-error-msg';
+      if (guardianInfo) { guardianInfo.textContent = ''; guardianInfo.className = 'form-error-msg'; }
+      if (inputGuardianQr) inputGuardianQr.value = '';
+    } else {
+      // Solo adult mode: show phone only
+      phoneContainer.style.display = 'flex';
+      familyContainer.style.display = 'none';
+      guardianContainer.style.display = 'none';
+      if (guardianInfo) { guardianInfo.textContent = ''; guardianInfo.className = 'form-error-msg'; }
+      if (familyInfo) { familyInfo.textContent = ''; familyInfo.className = 'form-error-msg'; }
+      if (inputGuardianQr) inputGuardianQr.value = '';
+      if (inputFamilyQr) inputFamilyQr.value = '';
     }
   };
 
-  toggleChild.addEventListener('change', updateVisibility);
+  // Mutually exclusive toggles
+  toggleChild.addEventListener('change', () => {
+    if (toggleChild.checked && toggleFamily) toggleFamily.checked = false;
+    updateVisibility();
+  });
+  if (toggleFamily) {
+    toggleFamily.addEventListener('change', () => {
+      if (toggleFamily.checked) toggleChild.checked = false;
+      updateVisibility();
+    });
+  }
   updateVisibility();
 
   // "Não possui telefone" toggle behavior
@@ -115,7 +158,7 @@ export function initVisitorView() {
     }
   });
 
-  // Real-time Guardian Validation
+  // Real-time Guardian Validation (child mode)
   let guardianSearchTimeout = null;
   inputGuardianQr.addEventListener('input', () => {
     clearTimeout(guardianSearchTimeout);
@@ -124,6 +167,7 @@ export function initVisitorView() {
 
     guardianInfo.textContent = '';
     guardianInfo.className = 'form-error-msg';
+    guardianInfo.style.color = '';
 
     if (!session.eventId) {
       guardianInfo.textContent = 'Selecione um evento ativo antes de cadastrar.';
@@ -151,6 +195,54 @@ export function initVisitorView() {
       }
     }, 300);
   });
+
+  // Real-time Family Adult Validation (family mode)
+  let familySearchTimeout = null;
+  if (inputFamilyQr) {
+    inputFamilyQr.addEventListener('input', () => {
+      clearTimeout(familySearchTimeout);
+      const session = getSession();
+      const qrVal = parseQrTicketNumber(inputFamilyQr.value);
+      const currentQr = parseQrTicketNumber(inputQrCode.value);
+
+      familyInfo.textContent = '';
+      familyInfo.className = 'form-error-msg';
+      familyInfo.style.color = '';
+
+      if (!session.eventId) {
+        familyInfo.textContent = 'Selecione um evento ativo antes de cadastrar.';
+        familyInfo.classList.add('visible');
+        return;
+      }
+
+      if (!qrVal) return;
+
+      familySearchTimeout = setTimeout(async () => {
+        // Self-reference check
+        if (currentQr && qrVal === currentQr) {
+          familyInfo.innerHTML = getIcon('alertTriangle', 14) + ' <span>O ticket não pode ser o mesmo do participante sendo cadastrado.</span>';
+          familyInfo.className = 'form-error-msg visible';
+          inputFamilyQr.classList.add('has-error');
+          return;
+        }
+        const linked = await getVisitorByQrAndEvent(qrVal, session.eventId);
+        if (!linked) {
+          familyInfo.innerHTML = getIcon('alertTriangle', 14) + ' <span>Nenhum adulto encontrado com este ticket no evento atual.</span>';
+          familyInfo.className = 'form-error-msg visible';
+          inputFamilyQr.classList.add('has-error');
+        } else if (linked.is_child) {
+          familyInfo.innerHTML = getIcon('alertTriangle', 14) + ' <span>Vínculo inválido: o ticket pertence a uma criança.</span>';
+          familyInfo.className = 'form-error-msg visible';
+          inputFamilyQr.classList.add('has-error');
+        } else {
+          familyInfo.innerHTML = getIcon('check', 14) + ` <span>Adulto encontrado: ${escapeHtml(linked.name)}</span>`;
+          familyInfo.className = 'form-error-msg visible';
+          familyInfo.style.color = 'var(--color-accent)';
+          inputFamilyQr.classList.remove('has-error');
+        }
+      }, 300);
+    });
+  }
 
   // Form Submission
   form.addEventListener('submit', async (e) => {
@@ -209,25 +301,13 @@ export function initVisitorView() {
     }
 
     const isChild = toggleChild.checked;
+    const isFamily = toggleFamily ? toggleFamily.checked : false;
     let phone = null;
     let hasPhone = false;
     let guardianQr = null;
 
-    if (!isChild) {
-      hasPhone = !toggleNoPhone.checked;
-      if (hasPhone) {
-        const digits = inputPhone.value.replace(/\D/g, '');
-        if (digits.length < 10) {
-          inputPhone.classList.add('has-error');
-          const err = document.getElementById('visitorPhoneError');
-          if (err) err.classList.add('visible');
-          showToast('GF-VISIT-VAL-002', 'error');
-          hasError = true;
-        } else {
-          phone = inputPhone.value;
-        }
-      }
-    } else {
+    if (isChild) {
+      // Child: requires guardian QR
       guardianQr = parseQrTicketNumber(inputGuardianQr.value);
       if (!guardianQr) {
         inputGuardianQr.classList.add('has-error');
@@ -242,6 +322,57 @@ export function initVisitorView() {
           inputGuardianQr.classList.add('has-error');
           showErrorModal('GF-VISIT-REG-002');
           return;
+        }
+      }
+    } else if (isFamily) {
+      // Family adult: requires phone (or no-phone toggle) + valid family QR
+      hasPhone = !toggleNoPhone.checked;
+      if (hasPhone) {
+        const digits = inputPhone.value.replace(/\D/g, '');
+        if (digits.length < 10) {
+          inputPhone.classList.add('has-error');
+          const err = document.getElementById('visitorPhoneError');
+          if (err) err.classList.add('visible');
+          showToast('GF-VISIT-VAL-002', 'error');
+          hasError = true;
+        } else {
+          phone = inputPhone.value;
+        }
+      }
+
+      const familyQrVal = parseQrTicketNumber(inputFamilyQr.value);
+      if (!familyQrVal) {
+        if (inputFamilyQr) inputFamilyQr.classList.add('has-error');
+        const err = document.getElementById('visitorFamilyQrError');
+        if (err) err.classList.add('visible');
+        showToast('GF-VISIT-VAL-007', 'error');
+        hasError = true;
+      } else if (familyQrVal === qrCode) {
+        if (inputFamilyQr) inputFamilyQr.classList.add('has-error');
+        showErrorModal('GF-VISIT-REG-006');
+        return;
+      } else {
+        const linked = await getVisitorByQrAndEvent(familyQrVal, session.eventId);
+        if (!linked || linked.is_child) {
+          if (inputFamilyQr) inputFamilyQr.classList.add('has-error');
+          showErrorModal('GF-VISIT-REG-006');
+          return;
+        }
+        guardianQr = familyQrVal;
+      }
+    } else {
+      // Solo adult: phone optional per toggle
+      hasPhone = !toggleNoPhone.checked;
+      if (hasPhone) {
+        const digits = inputPhone.value.replace(/\D/g, '');
+        if (digits.length < 10) {
+          inputPhone.classList.add('has-error');
+          const err = document.getElementById('visitorPhoneError');
+          if (err) err.classList.add('visible');
+          showToast('GF-VISIT-VAL-002', 'error');
+          hasError = true;
+        } else {
+          phone = inputPhone.value;
         }
       }
     }
@@ -266,6 +397,7 @@ export function initVisitorView() {
       // Reset form
       form.reset();
       toggleChild.checked = false;
+      if (toggleFamily) toggleFamily.checked = false;
       toggleNoPhone.checked = false;
       inputPhone.disabled = false;
       updateVisibility();
@@ -324,13 +456,7 @@ export function initVisitorView() {
 
     const phoneSectionHtml = !visitor.is_child ? `
       <div id="editVisitorPhoneContainer" class="form-group">
-        <label class="form-label" for="editVisitorPhone">
-          <span>Telefone de Contato</span>
-          <label style="display: flex; align-items: center; gap: 6px; font-weight: normal; font-size: var(--font-size-xs); cursor: pointer;">
-            <input type="checkbox" id="editVisitorNoPhone" ${!visitor.has_phone ? 'checked' : ''}>
-            <span>Não possui telefone</span>
-          </label>
-        </label>
+        <label class="form-label" for="editVisitorPhone">Telefone de Contato</label>
         <input
           type="tel"
           id="editVisitorPhone"
@@ -341,6 +467,17 @@ export function initVisitorView() {
           value="${escapeHtml(visitor.phone || '')}"
           ${!visitor.has_phone ? 'disabled' : ''}
         >
+        <div class="toggle-wrapper"
+          style="margin-top: var(--space-2); padding: var(--space-2) var(--space-3); background-color: var(--color-surface-hover); border-radius: var(--radius-sm);">
+          <label class="toggle-label" for="editVisitorNoPhone" style="cursor: pointer;">
+            <strong>Não possui telefone</strong>
+            <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">Marque caso o participante não possua número de contato</div>
+          </label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="editVisitorNoPhone" ${!visitor.has_phone ? 'checked' : ''}>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
       </div>
     ` : '';
 
@@ -512,22 +649,20 @@ export function initVisitorView() {
       return;
     }
 
-    // --- Constraint 2: guardian check (only for adults) ---
-    if (!visitor.is_child) {
-      let allVisitors = [];
-      try {
-        allVisitors = await getVisitorsByEventId(eventId);
-      } catch {
-        showToast('GF-SYSTEM-SYS-001', 'error');
-        return;
-      }
-      const hasChildren = allVisitors.some(
-        v => v.is_child && Number(v.guardian_qr_code) === Number(visitor.qr_code)
-      );
-      if (hasChildren) {
-        showToast('GF-VISIT-REG-005', 'warning');
-        return;
-      }
+    // --- Constraint 2: linked members check (children or co-adult in family group) ---
+    let allVisitors = [];
+    try {
+      allVisitors = await getVisitorsByEventId(eventId);
+    } catch {
+      showToast('GF-SYSTEM-SYS-001', 'error');
+      return;
+    }
+    const hasLinkedMembers = allVisitors.some(
+      v => Number(v.guardian_qr_code) === Number(visitor.qr_code)
+    );
+    if (hasLinkedMembers) {
+      showToast('GF-VISIT-REG-005', 'warning');
+      return;
     }
 
     // --- All constraints passed: show password-protected confirmation modal ---
@@ -650,9 +785,14 @@ export function initVisitorView() {
     }
 
     visitorsList.innerHTML = visitors.map(v => {
-      const typeBadge = v.is_child
-        ? `<span class="badge badge-child">Criança (Resp: #${v.guardian_qr_code})</span>`
-        : `<span class="badge badge-adult">Adulto ${v.has_phone ? '• ' + v.phone : '• Sem telefone'}</span>`;
+      let typeBadge;
+      if (v.is_child) {
+        typeBadge = `<span class="badge badge-child">Criança (Resp: #${v.guardian_qr_code})</span>`;
+      } else if (!v.is_child && v.guardian_qr_code) {
+        typeBadge = `<span class="badge badge-adult">Adulto (Família: #${v.guardian_qr_code}) ${v.has_phone ? '• ' + v.phone : '• Sem telefone'}</span>`;
+      } else {
+        typeBadge = `<span class="badge badge-adult">Adulto ${v.has_phone ? '• ' + v.phone : '• Sem telefone'}</span>`;
+      }
 
       const infoParts = [];
       if (v.gender) infoParts.push(escapeHtml(v.gender));

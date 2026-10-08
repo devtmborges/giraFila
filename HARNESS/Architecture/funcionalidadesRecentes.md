@@ -2,12 +2,69 @@
 
 > Documentação das funcionalidades incluídas na versão atual do GiraFila.
 
-- **Current Version:** v0.7.0-family-modal
-- **Last Updated:** 2026-10-02
+- **Current Version:** v0.8.0-multi-adult-family
+- **Last Updated:** 2026-10-08
 
 ---
 
 ## Feature Overview
+
+### Módulo: Menu Secreto com Autenticação Mestre & Limpeza Hierárquica de Dados (v0.8.1)
+- **Gatilho de Ativação Oculto**:
+  - Acionado pelo clique de 5 vezes na aba "Dashboard" em um intervalo de até 10 segundos (janela deslizante no `js/app.js`).
+  - Protegido por solicitação prévia de **Senha Mestre** validada com Web Crypto API (`js/utils/masterPassword.js`).
+- **Modal do Menu Secreto (`#secretMenuBackdrop`)**:
+  - Modal estilizado com tema de segurança/administração e alerta de irreversibilidade.
+  - Quatro toggles independentes com contagem em tempo real de registros presentes no banco:
+    - Atendimentos (`#cleanToggleAttendances`)
+    - Visitantes (`#cleanToggleVisitors`)
+    - Serviços (`#cleanToggleServices`)
+    - Eventos (`#cleanToggleEvents`)
+  - Seleção em cascata automática garantindo integridade relacional:
+    - Marcar Eventos seleciona automaticamente Serviços, Visitantes e Atendimentos.
+    - Marcar Serviços ou Visitantes seleciona automaticamente Atendimentos.
+    - Desmarcar Atendimentos desmarca Serviços, Visitantes e Eventos.
+- **Sequência Hierárquica Antiórfãos de Exclusão**:
+  - Exclusão rigorosa na ordem: 1º Atendimentos, 2º Visitantes (um grupo familiar por vez: crianças primeiro, depois dependentes vinculados, depois adultos responsáveis), 3º Serviços, 4º Eventos.
+  - Expurgo físico de `audit_logs` e execução obrigatória de `VACUUM` no SQLite, garantindo zero retenção por tags e compactação imediata do arquivo `girafila.db`.
+  - Suporte total dual-mode: SQLite LAN via `api.php?entity=clean` e fallback local IndexedDB via `purgeEntities()`.
+- **Menu Secreto como Hub Administrativo & Modais Exclusivos**:
+  - Menu Secreto estruturado como hub limpo com cards de ação: **Exportação de Dados** e **Limpeza de Dados**.
+  - Operação de exclusão desacoplada em modal exclusivo com os 4 toggles, contadores reais e alerta de irreversibilidade.
+  - Botão `#dashBtnExport` removido do cabeçalho aberto do Dashboard (`index.html`).
+  - Navegação bidirecional: botões **"Voltar"** tanto no modal de exportação quanto no modal de limpeza retornam diretamente ao Menu Secreto.
+  - Janela do contador do Menu Secreto ajustada para 10 segundos (5 cliques na aba Dashboard).
+- **Novos Códigos de Erro no Catálogo SSOT**: `GF-CLEAN-VAL-001`, `GF-CLEAN-SYS-001`.
+
+
+### Módulo: Grupo Familiar com Múltiplos Adultos & Ajustes de UI na Recepção (v0.8.0)
+- **Toggle de Grupo Familiar (`#visitorIsFamily`)**:
+  - Novo toggle na tela de Recepção, posicionado abaixo do toggle de criança (`#visitorIsChild`).
+  - **Exclusividade mútua**: ativar um toggle desativa o outro automaticamente.
+  - Estados possíveis: Criança | Grupo Familiar (adulto co-responsável) | Adulto solo.
+- **Campo de vinculação entre adultos (`#visitorFamilyContainer` / `#visitorFamilyQr`)**:
+  - Exibido apenas quando o toggle Grupo Familiar está ativo.
+  - Posicionado acima do campo de telefone.
+  - Rótulo: "Vincular a outro adulto?".
+  - Validação em tempo real (debounce 300ms): verifica existência no evento, impede auto-referência e bloqueia ticket de criança.
+  - Persiste o ticket do outro adulto em `guardian_qr_code` do novo registro, reutilizando o campo existente.
+- **Toggle "Não possui telefone" (`#visitorNoPhone`)**:
+  - Substituiu o checkbox inline no label por um componente toggle switch (`.toggle-switch`) padronizado.
+  - Movido para baixo do campo de telefone, tanto na tela principal quanto no modal de edição.
+- **Resolução de Grupo Familiar por BFS Bidirecional**:
+  - `familyModal.js` e `familySearch.js` atualizado para resolver grupos com múltiplos adultos co-vinculados via BFS sobre `guardian_qr_code`.
+  - Badge diferenciado: adulto com `guardian_qr_code` exibe "Adulto (Co-Responsável)" no modal.
+  - "Vinculado ao Ticket: #X" exibido como pill de detalhe para adultos co-responsáveis.
+- **Restrição de Exclusão Expandida**:
+  - Bloqueia exclusão de qualquer participante (criança ou adulto) cujo ticket seja referenciado por `guardian_qr_code` de outro membro (error `GF-VISIT-REG-005`).
+  - Aplica-se tanto no frontend (IndexedDB) quanto na API PHP.
+- **Expurgo Físico Real de Registros no Banco de Dados (girafila.db & IndexedDB)**:
+  - Eliminação da retenção de registros excluídos via "tag" ou log de auditoria no banco (`audit_logs`).
+  - Ao excluir um participante, atendimento, serviço ou evento, todos os registros relacionados em `audit_logs` são expurgados física e definitivamente.
+  - Ativação de `PRAGMA secure_delete = ON` no SQLite para sobrescrever bytes de registros deletados com zeros no arquivo de disco.
+  - Execução automática de `VACUUM` após cada exclusão bem-sucedida no SQLite (`api.php`), liberando as páginas livres e compactando fisicamente o arquivo `girafila.db`.
+  - Tratamento idêntico no armazenamento local (IndexedDB), com remoção por cursor de entradas de auditoria referentes ao ID excluído.
+- **Novos Códigos de Erro**: `GF-VISIT-VAL-007`, `GF-VISIT-REG-006`. Atualização semântica de `GF-VISIT-REG-005`.
 
 ### Módulo: Visualização de Grupo Familiar & Histórico de Atendimentos (v0.7.0)
 - **Cards Interativos e Clicáveis**:

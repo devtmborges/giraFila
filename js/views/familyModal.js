@@ -61,28 +61,42 @@ export async function openFamilyModal({ qrCode, eventId, onSelectTicket = null, 
     return;
   }
 
-  // Determine Family Anchor QR:
-  // For children, anchor is guardian_qr_code; for adults, it's their own qr_code.
-  const anchorQr = (targetVisitor.is_child && targetVisitor.guardian_qr_code)
-    ? Number(targetVisitor.guardian_qr_code)
-    : Number(targetVisitor.qr_code);
-
-  // Group members:
-  // 1. Adults whose qr_code is the anchor
-  // 2. Children whose guardian_qr_code is the anchor
-  let familyMembers = allVisitors.filter(v => {
-    if (!v.is_child) {
-      return Number(v.qr_code) === anchorQr;
+  // BFS bidirecional: resolve todo o grupo familiar conectado via guardian_qr_code
+  // Suporta múltiplos adultos co-vinculados além de crianças dependentes.
+  const resolveFamilyGroup = (anchor) => {
+    const visited = new Set();
+    const queue = [String(anchor)];
+    while (queue.length > 0) {
+      const current = queue.shift();
+      if (visited.has(current)) continue;
+      visited.add(current);
+      allVisitors.forEach(v => {
+        const vQr = String(v.qr_code);
+        const vGuardian = v.guardian_qr_code ? String(v.guardian_qr_code) : null;
+        // Forward: v aponta para current
+        if (vGuardian === current && !visited.has(vQr)) queue.push(vQr);
+        // Backward: current aponta para v
+        if (vQr === current) {
+          const cv = allVisitors.find(x => String(x.qr_code) === current);
+          if (cv && cv.guardian_qr_code) {
+            const g = String(cv.guardian_qr_code);
+            if (!visited.has(g)) queue.push(g);
+          }
+        }
+      });
     }
-    return Number(v.guardian_qr_code) === anchorQr;
-  });
+    return visited;
+  };
 
-  // Fallback: If orphan child or anchor adult not in event, ensure targetVisitor is included
+  const familyQrSet = resolveFamilyGroup(numQr);
+  let familyMembers = allVisitors.filter(v => familyQrSet.has(String(v.qr_code)));
+
+  // Fallback: membro órfão sem vínculos
   if (familyMembers.length === 0) {
     familyMembers = [targetVisitor];
   }
 
-  // Sort: Adult guardian first, then children ordered by age (descending) or ticket
+  // Sort: Adultos primeiro (por ticket), depois crianças por idade desc
   familyMembers.sort((a, b) => {
     if (!a.is_child && b.is_child) return -1;
     if (a.is_child && !b.is_child) return 1;
@@ -90,7 +104,6 @@ export async function openFamilyModal({ qrCode, eventId, onSelectTicket = null, 
     return Number(a.qr_code) - Number(b.qr_code);
   });
 
-  const anchorAdult = familyMembers.find(m => !m.is_child && Number(m.qr_code) === anchorQr);
 
   // Load attendances and services for this event
   let attendances = [];
@@ -141,7 +154,9 @@ export async function openFamilyModal({ qrCode, eventId, onSelectTicket = null, 
     // Badges & details
     const roleBadge = isChild
       ? `<span class="badge badge-child">${getIcon('users', 12)} Criança / Dependente</span>`
-      : `<span class="badge badge-adult">${getIcon('user', 12)} Adulto Responsável</span>`;
+      : (member.guardian_qr_code
+          ? `<span class="badge badge-adult">${getIcon('user', 12)} Adulto (Co-Responsável)</span>`
+          : `<span class="badge badge-adult">${getIcon('user', 12)} Adulto Responsável</span>`);
 
     const detailPills = [];
     if (member.gender) {
@@ -152,6 +167,9 @@ export async function openFamilyModal({ qrCode, eventId, onSelectTicket = null, 
     }
     if (!isChild) {
       detailPills.push(`<span><strong>Telefone:</strong> ${member.has_phone ? escapeHtml(member.phone) : 'Sem telefone'}</span>`);
+      if (member.guardian_qr_code) {
+        detailPills.push(`<span><strong>Vinculado ao Ticket:</strong> #${member.guardian_qr_code}</span>`);
+      }
     } else if (member.guardian_qr_code) {
       detailPills.push(`<span><strong>Responsável:</strong> Ticket #${member.guardian_qr_code}</span>`);
     }

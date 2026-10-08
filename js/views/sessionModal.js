@@ -86,6 +86,20 @@ export function clearSessionIfMatches(eventId, serviceId = null) {
   }
 }
 
+export function resetSession(onlyService = false) {
+  if (onlyService) {
+    currentSession.serviceId = null;
+    currentSession.serviceName = null;
+  } else {
+    currentSession.eventId = null;
+    currentSession.eventName = null;
+    currentSession.serviceId = null;
+    currentSession.serviceName = null;
+  }
+  updateSessionBar();
+  notifyListeners();
+}
+
 export function updateSessionNames(eventId, newEventName, serviceId = null, newServiceName = null) {
   let changed = false;
   if (eventId && currentSession.eventId === Number(eventId) && newEventName) {

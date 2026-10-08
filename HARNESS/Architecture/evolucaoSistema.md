@@ -27,6 +27,32 @@ Use the following format per version entry:
 - [Any important migration notes, breaking changes, or context]
 ```
 
+## v0.8.1 — 2026-10-08 — Menu Secreto, Expurgo Físico Hierárquico & Hub Administrativo
+
+### Added
+- Menu Secreto ativado por 5 cliques na aba Dashboard em até 10s, protegido por Senha Mestre.
+- Modal exclusivo de Limpeza de Dados com 4 toggles (Atendimentos, Visitantes, Serviços, Eventos) com contadores em tempo real e cascata de integridade.
+- Expurgo físico real no SQLite (`api.php`) e IndexedDB sem retenção por tags em `audit_logs` e compactação obrigatória com `VACUUM`.
+- Sequência hierárquica antiórfãos estrita: 1º Atendimentos, 2º Visitantes (grupo familiar por grupo familiar: crianças primeiro, depois outros dependentes, depois responsáveis), 3º Serviços, 4º Eventos.
+- Novos códigos de erro: `GF-CLEAN-VAL-001` e `GF-CLEAN-SYS-001`.
+- Ícones vetoriais `lock` e `download` adicionados a `icons.js`.
+
+### Changed
+- Botão de Exportação de Dados movido da barra de cabeçalho do Dashboard para o Menu Secreto como hub administrativo.
+- Botão "Voltar" nos modais de Limpeza e Exportação retorna diretamente ao Menu Secreto.
+- Janela de cliques calibrada para 10 segundos.
+
+---
+
+## v0.8.0 — 2026-10-08 — Vínculo entre Múltiplos Adultos & Expurgo Físico
+
+### Added
+- Toggle "Grupo Familiar" com campo "Vincular a outro adulto?" na Recepção.
+- Resolução BFS bidirecional de grupos familiares no `familyModal.js` e `familySearch.js`.
+- Toggle switch "Não possui telefone".
+- Restrição de exclusão para qualquer membro referenciado por `guardian_qr_code`.
+- Expurgo físico no SQLite com `PRAGMA secure_delete = ON` e `VACUUM`.
+
 ---
 
 ## v0.6.0 — 2026-10-02 — Context Tags & Modais Exclusivos de Sessão

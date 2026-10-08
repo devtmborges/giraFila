@@ -26,6 +26,7 @@ import { verifyPassword } from '../utils/masterPassword.js';
 let rawData = { events: [], services: [], visitors: [], attendances: [] };
 let activeFilters = { eventId: null, serviceId: null, gender: null, publicType: null };
 let isLoading = false;
+let exportBackCallback = null;
 
 // ---------------------------------------------------------------------------
 // DOM refs (resolved on init)
@@ -668,7 +669,14 @@ function _bindExportListeners() {
   }
 
   if (refs.exportModalBtnCancel) {
-    refs.exportModalBtnCancel.addEventListener('click', () => _closeExportModal());
+    refs.exportModalBtnCancel.addEventListener('click', () => {
+      _closeExportModal();
+      if (exportBackCallback) {
+        const cb = exportBackCallback;
+        exportBackCallback = null;
+        cb();
+      }
+    });
   }
 
   if (refs.exportModalBtnConfirm) {
@@ -758,6 +766,14 @@ function _getFilteredData() {
     visitors: filteredVisitors,
     attendances: filteredAttendances,
   };
+}
+
+export async function openExportModal(onBack = null) {
+  exportBackCallback = onBack;
+  if (rawData.events.length === 0 && rawData.visitors.length === 0) {
+    await loadAndRender();
+  }
+  _openExportModal();
 }
 
 function _openExportModal() {

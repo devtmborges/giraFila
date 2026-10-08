@@ -14,6 +14,7 @@ import { copyTextToClipboard } from './utils/clipboard.js';
 import { showToast, showSuccess } from './services/errorHandler.js';
 import { getIcon } from './utils/icons.js';
 import { verifyPassword, updatePassword } from './utils/masterPassword.js';
+import { openSecretMenu } from './views/secretMenuModal.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   // 1. Initialize IndexedDB schema
@@ -60,10 +61,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (tabId === 'tabDashboard'  && window.refreshDashboardView)  window.refreshDashboardView();
   };
 
+  // Secret Menu Trigger: 5 clicks on Dashboard tab within 10 seconds
+  let dashboardClicks = [];
+  const DASHBOARD_SECRET_CLICKS = 5;
+  const DASHBOARD_SECRET_WINDOW_MS = 10000;
+
   tabButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const tabId = btn.getAttribute('data-tab');
       switchTab(tabId);
+
+      if (tabId === 'tabDashboard') {
+        const now = Date.now();
+        dashboardClicks = dashboardClicks.filter(timestamp => now - timestamp < DASHBOARD_SECRET_WINDOW_MS);
+        dashboardClicks.push(now);
+
+        if (dashboardClicks.length >= DASHBOARD_SECRET_CLICKS) {
+          dashboardClicks = [];
+          openSecretMenu();
+        }
+      }
     });
   });
 
