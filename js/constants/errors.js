@@ -138,6 +138,15 @@ export const ERROR_CATALOG = Object.freeze({
       suggestedAction: 'Conferir o ticket do outro adulto e garantir que ele já esteja cadastrado.'
     }
   },
+  'GF-VISIT-REG-007': {
+    userMessage: 'Não é possível alterar este participante para criança pois existem outros membros familiares vinculados ao seu ticket como responsável neste evento.',
+    technicalContext: {
+      summary: 'Tentativa de converter adulto em criança quando este já possui tickets dependentes vinculados ao seu QR Code.',
+      commonCauses: ['Operador tentou marcar o toggle de criança em participante que já é o responsável por crianças ou outros adultos no evento'],
+      relatedFiles: ['js/views/visitorView.js'],
+      suggestedAction: 'Desvincular os dependentes previamente ou manter o participante como adulto.'
+    }
+  },
 
   // Event Validation
   'GF-EVENT-VAL-001': {
@@ -438,6 +447,26 @@ export const ERROR_CATALOG = Object.freeze({
       commonCauses: ['Erro na requisição HTTP para api.php?entity=clean', 'Falha de transação no IndexedDB', 'Banco de dados bloqueado por outra operação'],
       relatedFiles: ['js/views/secretMenuModal.js', 'js/services/storageService.js', 'api.php'],
       suggestedAction: 'Verificar console do navegador para detalhes da falha. Verificar se o servidor PHP está ativo.'
+    }
+  },
+
+  // Access Address Configuration
+  'GF-ACCESS-VAL-001': {
+    userMessage: 'Informe o endereço virtual da aplicação para salvar no modo Web.',
+    technicalContext: {
+      summary: 'Campo de URL Web deixado vazio ao tentar salvar configuração de acesso no modo Web.',
+      commonCauses: ['Usuário selecionou modo Web mas não preencheu a URL da hospedagem'],
+      relatedFiles: ['js/views/secretMenuModal.js', 'js/utils/accessConfig.js'],
+      suggestedAction: 'Solicitar preenchimento do campo de URL virtual antes de salvar.'
+    }
+  },
+  'GF-ACCESS-VAL-002': {
+    userMessage: 'O endereço virtual informado é inválido. Certifique-se de incluir http:// ou https://.',
+    technicalContext: {
+      summary: 'URL informada para o modo de acesso Web não passa na validação de formato de URL.',
+      commonCauses: ['URL sem protocolo (ex: sem http:// ou https://)', 'URL com espaços ou caracteres inválidos', 'Esquema de URL malicioso (ex: javascript:)'],
+      relatedFiles: ['js/views/secretMenuModal.js', 'js/utils/accessConfig.js'],
+      suggestedAction: 'Validar com URL() constructor e garantir que o protocolo seja http: ou https:.'
     }
   }
 });

@@ -12,6 +12,7 @@ import { showToast, showSuccess } from '../services/errorHandler.js';
 import { getIcon } from '../utils/icons.js';
 import { resetSession } from './sessionModal.js';
 import { openExportModal } from './dashboardView.js';
+import { getAccessConfig, sanitizeWebUrl, validateWebUrl, saveAccessConfig } from '../utils/accessConfig.js';
 
 // ---------------------------------------------------------------------------
 // MASTER PASSWORD PROMPT
@@ -172,6 +173,17 @@ function openSecretMenuModal() {
           </button>
         </div>
 
+        <!-- Ação 3: Endereço de Acesso -->
+        <div style="background:var(--color-surface);padding:var(--space-3);border-radius:var(--radius-md);border:1px solid var(--color-border);display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);">
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <span style="font-size:var(--font-size-base);font-weight:var(--font-weight-medium);color:var(--color-text-main);">Endereço de Acesso</span>
+            <span style="font-size:var(--font-size-xs);color:var(--color-text-muted);">Configurar se o acesso é por rede local ou endereço Web</span>
+          </div>
+          <button type="button" class="btn btn-secondary" id="secretMenuBtnAccessAddress" style="white-space:nowrap;">
+            ${getIcon('globe', 14)} Configurar
+          </button>
+        </div>
+
       </div>
 
       <div class="modal-footer">
@@ -200,12 +212,244 @@ function openSecretMenuModal() {
     };
   }
 
+  const btnAccessAddress = backdrop.querySelector('#secretMenuBtnAccessAddress');
+  if (btnAccessAddress) {
+    btnAccessAddress.onclick = () => {
+      close();
+      openAccessAddressModal();
+    };
+  }
+
   backdrop.querySelector('#secretMenuClose').onclick = close;
   backdrop.querySelector('#secretMenuCloseBtn').onclick = close;
   backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
   document.addEventListener('keydown', function escHandler(e) {
     if (e.key === 'Escape') { close(); document.removeEventListener('keydown', escHandler); }
   });
+}
+
+// ---------------------------------------------------------------------------
+// ACCESS ADDRESS MODAL (EXCLUSIVE MODAL)
+// ---------------------------------------------------------------------------
+
+/**
+ * Opens the dedicated Access Address configuration modal.
+ * Allows admin to choose between Local (LAN/Wi-Fi) and Web (virtual URL) modes.
+ */
+async function openAccessAddressModal() {
+  const { mode: currentMode, webUrl: currentWebUrl } = await getAccessConfig();
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop active';
+  backdrop.style.zIndex = 'var(--z-modal-primary)';
+  backdrop.id = 'accessAddressBackdrop';
+
+  backdrop.innerHTML = `
+    <div class="modal-dialog" style="max-width:480px;">
+      <div class="modal-header" style="border-radius:var(--radius-lg) var(--radius-lg) 0 0;">
+        <h2 class="card-title" style="display:flex;align-items:center;gap:8px;font-size:var(--font-size-base);">
+          ${getIcon('globe', 16)}
+          <span>Endereço de Acesso</span>
+        </h2>
+        <button type="button" class="btn-icon" id="accessAddressClose" aria-label="Fechar modal de endereço de acesso" style="margin-left:auto;">
+          ${getIcon('close', 18)}
+        </button>
+      </div>
+
+      <div class="modal-body" style="display:flex;flex-direction:column;gap:var(--space-4);">
+
+        <!-- Segmented control: Local / Web -->
+        <div>
+          <p style="font-size:var(--font-size-sm);font-weight:600;color:var(--color-text-secondary);margin:0 0 var(--space-2) 0;">
+            Tipo de acesso:
+          </p>
+          <div id="accessModeControl" style="display:flex;background:var(--color-surface-hover);border-radius:var(--radius-md);padding:3px;gap:3px;">
+            <button type="button" id="accessModeLocal"
+              style="flex:1;padding:var(--space-2) var(--space-3);border-radius:calc(var(--radius-md) - 2px);border:none;cursor:pointer;font-size:var(--font-size-sm);font-weight:var(--font-weight-medium);transition:all var(--transition-fast);display:flex;align-items:center;justify-content:center;gap:6px;">
+              ${getIcon('wifi', 14)} Local (Rede Wi-Fi)
+            </button>
+            <button type="button" id="accessModeWeb"
+              style="flex:1;padding:var(--space-2) var(--space-3);border-radius:calc(var(--radius-md) - 2px);border:none;cursor:pointer;font-size:var(--font-size-sm);font-weight:var(--font-weight-medium);transition:all var(--transition-fast);display:flex;align-items:center;justify-content:center;gap:6px;">
+              ${getIcon('globe', 14)} Web (Endereço Virtual)
+            </button>
+          </div>
+        </div>
+
+        <!-- Local mode content -->
+        <div id="accessLocalContent">
+          <div style="background:var(--color-primary-light);border:1.5px solid var(--color-primary);border-radius:var(--radius-md);padding:var(--space-3);text-align:center;">
+            <div style="font-size:var(--font-size-xs);font-weight:var(--font-weight-semibold);color:var(--color-primary);text-transform:uppercase;margin-bottom:4px;">
+              Endereço na Rede Local
+            </div>
+            <div id="accessLocalIpDisplay" style="font-size:var(--font-size-lg);font-weight:var(--font-weight-bold);font-family:var(--font-family-mono);color:var(--color-primary);word-break:break-all;">
+              Carregando...
+            </div>
+          </div>
+          <p style="font-size:var(--font-size-xs);color:var(--color-text-muted);margin:var(--space-2) 0 0 0;">
+            Dispositivos na mesma rede Wi-Fi acessam pelo endereço acima.
+          </p>
+        </div>
+
+        <!-- Web mode content -->
+        <div id="accessWebContent" style="display:none;">
+          <div class="form-group" style="margin:0;">
+            <label class="form-label required" for="accessWebUrlInput">
+              ${getIcon('globe', 14)}
+              Endereço virtual da aplicação
+            </label>
+            <input
+              type="url"
+              id="accessWebUrlInput"
+              class="form-input"
+              placeholder="https://girafila.exemplo.com"
+              autocomplete="off"
+              aria-label="Endereço virtual da aplicação Web"
+              value="${currentWebUrl.replace(/"/g, '&quot;')}"
+            />
+            <span class="form-error-msg" id="accessWebUrlError"></span>
+          </div>
+          <!-- Live preview -->
+          <div id="accessWebPreviewBox" style="margin-top:var(--space-3);background:var(--color-primary-light);border:1.5px solid var(--color-primary);border-radius:var(--radius-md);padding:var(--space-3);text-align:center;${currentWebUrl ? '' : 'display:none;'}">
+            <div style="font-size:var(--font-size-xs);font-weight:var(--font-weight-semibold);color:var(--color-primary);text-transform:uppercase;margin-bottom:4px;">
+              Endereço Web Configurado
+            </div>
+            <div id="accessWebPreviewUrl" style="font-size:var(--font-size-base);font-weight:var(--font-weight-bold);font-family:var(--font-family-mono);color:var(--color-primary);word-break:break-all;">
+              ${currentWebUrl}
+            </div>
+          </div>
+          <p style="font-size:var(--font-size-xs);color:var(--color-text-muted);margin:var(--space-2) 0 0 0;">
+            Todos os dispositivos acessarão pelo endereço virtual acima, mesmo fora da rede local.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="accessAddressBack">Voltar</button>
+        <button type="button" class="btn btn-primary" id="accessAddressSave">
+          ${getIcon('check', 14)} Salvar
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(backdrop);
+
+  // --- Helpers ---
+  const btnLocal       = backdrop.querySelector('#accessModeLocal');
+  const btnWeb         = backdrop.querySelector('#accessModeWeb');
+  const localContent   = backdrop.querySelector('#accessLocalContent');
+  const webContent     = backdrop.querySelector('#accessWebContent');
+  const webUrlInput    = backdrop.querySelector('#accessWebUrlInput');
+  const webUrlError    = backdrop.querySelector('#accessWebUrlError');
+  const previewBox     = backdrop.querySelector('#accessWebPreviewBox');
+  const previewUrl     = backdrop.querySelector('#accessWebPreviewUrl');
+  const localIpDisplay = backdrop.querySelector('#accessLocalIpDisplay');
+
+  let activeMode = currentMode;
+
+  // Fetch local IP to display in Local mode
+  fetch('api.php?entity=info')
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.ip && localIpDisplay) {
+        localIpDisplay.textContent = `http://${data.ip}:8080/`;
+      }
+    })
+    .catch(() => {
+      if (localIpDisplay) localIpDisplay.textContent = 'Não foi possível obter o IP local.';
+    });
+
+  const ACTIVE_STYLE   = 'background:var(--color-primary);color:#fff;box-shadow:var(--shadow-sm);';
+  const INACTIVE_STYLE = 'background:transparent;color:var(--color-text-muted);';
+
+  function applyModeStyles() {
+    if (activeMode === 'local') {
+      btnLocal.setAttribute('style', btnLocal.getAttribute('style').replace(/flex:1;/, 'flex:1;') + ACTIVE_STYLE);
+      btnWeb.setAttribute('style', btnWeb.getAttribute('style').replace(/flex:1;/, 'flex:1;') + INACTIVE_STYLE);
+      btnLocal.style.background = 'var(--color-primary)';
+      btnLocal.style.color = '#fff';
+      btnLocal.style.boxShadow = 'var(--shadow-sm)';
+      btnWeb.style.background = 'transparent';
+      btnWeb.style.color = 'var(--color-text-muted)';
+      btnWeb.style.boxShadow = 'none';
+      localContent.style.display = '';
+      webContent.style.display = 'none';
+    } else {
+      btnWeb.style.background = 'var(--color-primary)';
+      btnWeb.style.color = '#fff';
+      btnWeb.style.boxShadow = 'var(--shadow-sm)';
+      btnLocal.style.background = 'transparent';
+      btnLocal.style.color = 'var(--color-text-muted)';
+      btnLocal.style.boxShadow = 'none';
+      localContent.style.display = 'none';
+      webContent.style.display = '';
+    }
+  }
+
+  applyModeStyles();
+
+  btnLocal.onclick = () => { activeMode = 'local'; applyModeStyles(); };
+  btnWeb.onclick   = () => { activeMode = 'web';   applyModeStyles(); setTimeout(() => webUrlInput && webUrlInput.focus(), 50); };
+
+  // Live URL preview as user types
+  if (webUrlInput) {
+    webUrlInput.addEventListener('input', () => {
+      webUrlError.textContent = '';
+      webUrlInput.classList.remove('form-input--error');
+      const val = webUrlInput.value.trim();
+      if (val && validateWebUrl(val)) {
+        previewUrl.textContent = val;
+        previewBox.style.display = '';
+      } else {
+        previewBox.style.display = 'none';
+      }
+    });
+  }
+
+  const closeModal = () => backdrop.remove();
+  const goBack     = () => { closeModal(); openSecretMenuModal(); };
+
+  backdrop.querySelector('#accessAddressClose').onclick = closeModal;
+  backdrop.querySelector('#accessAddressBack').onclick  = goBack;
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
+  document.addEventListener('keydown', function escHandler(e) {
+    if (e.key === 'Escape') { closeModal(); document.removeEventListener('keydown', escHandler); }
+  });
+
+  // Save
+  backdrop.querySelector('#accessAddressSave').onclick = async () => {
+    if (activeMode === 'web') {
+      const rawUrl  = webUrlInput ? webUrlInput.value : '';
+      const cleaned = sanitizeWebUrl(rawUrl);
+
+      if (!cleaned) {
+        showToast('GF-ACCESS-VAL-001', 'warning');
+        webUrlError.textContent = 'Informe o endereço virtual da aplicação.';
+        webUrlInput.classList.add('form-input--error');
+        webUrlInput.focus();
+        return;
+      }
+
+      if (!validateWebUrl(cleaned)) {
+        showToast('GF-ACCESS-VAL-002', 'warning');
+        webUrlError.textContent = 'Endereço inválido. Inclua http:// ou https://.';
+        webUrlInput.classList.add('form-input--error');
+        webUrlInput.focus();
+        return;
+      }
+
+      await saveAccessConfig({ mode: 'web', webUrl: cleaned });
+    } else {
+      await saveAccessConfig({ mode: 'local', webUrl: '' });
+    }
+
+    // Notify the rest of the app that the config changed
+    window.dispatchEvent(new CustomEvent('gf:accessConfigChanged'));
+
+    closeModal();
+    showSuccess('Configuração de acesso salva com sucesso!');
+  };
 }
 
 // ---------------------------------------------------------------------------

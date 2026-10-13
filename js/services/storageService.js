@@ -596,18 +596,21 @@ export async function getVisitorById(id) {
 }
 
 /**
- * Updates visitor — name, gender, age, phone and has_phone are editable.
+ * Updates visitor — name, gender, age, is_child, phone, has_phone and guardian_qr_code are editable.
  * QR Code and event_id are immutable (physical ticket integrity).
  */
-export async function updateVisitor(id, { name, gender, age, phone, has_phone }) {
+export async function updateVisitor(id, { name, gender, age, is_child, phone, has_phone, guardian_qr_code }) {
   const isLan = await isLanApiAvailable();
   const before = await getVisitorById(id);
+  const isChild = Boolean(is_child);
   const record = {
     name,
     gender: gender || null,
     age: age !== undefined && age !== null && age !== '' ? Number(age) : null,
-    phone: has_phone ? phone : null,
-    has_phone: Boolean(has_phone)
+    is_child: isChild,
+    phone: !isChild && has_phone ? phone : null,
+    has_phone: !isChild && Boolean(has_phone),
+    guardian_qr_code: guardian_qr_code ? Number(guardian_qr_code) : null
   };
 
   if (isLan) {

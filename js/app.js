@@ -15,6 +15,7 @@ import { showToast, showSuccess } from './services/errorHandler.js';
 import { getIcon } from './utils/icons.js';
 import { verifyPassword, updatePassword } from './utils/masterPassword.js';
 import { openSecretMenu } from './views/secretMenuModal.js';
+import { getAccessConfig, getActiveDisplayUrl } from './utils/accessConfig.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   // 1. Initialize IndexedDB schema
@@ -120,22 +121,105 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
 
-  // 6. LAN Wi-Fi Info Modal
-  const btnLanInfo = document.getElementById('btnLanInfo');
-  const lanBackdrop = document.getElementById('lanModalBackdrop');
-  const lanClose = document.getElementById('lanModalClose');
-  const btnCopyLanUrl = document.getElementById('btnCopyLanUrl');
-  const lanUrlDisplay = document.getElementById('lanUrlDisplay');
+  // 6. LAN / Access Info Modal
+  const btnLanInfo       = document.getElementById('btnLanInfo');
+  const lanBackdrop      = document.getElementById('lanModalBackdrop');
+  const lanClose         = document.getElementById('lanModalClose');
+  const btnCopyLanUrl    = document.getElementById('btnCopyLanUrl');
+  const lanUrlDisplay    = document.getElementById('lanUrlDisplay');
+  const lanModalTitle    = document.getElementById('lanModalTitleText');
+  const lanModalSubtitle = document.getElementById('lanModalSubtitle');
+  const lanUrlLabel      = document.getElementById('lanUrlLabel');
+  const lanInstructions  = document.getElementById('lanInstructions');
 
-  // Dynamically update displayed LAN URL from server
+  // Store the live local IP fetched from the server
+  let cachedLocalIp = '';
+
+  // Fetch live LAN IP from server once
   fetch('api.php?entity=info')
     .then(r => r.json())
     .then(data => {
-      if (data && data.ip && lanUrlDisplay) {
-        lanUrlDisplay.textContent = `http://${data.ip}:8080/`;
+      if (data && data.ip) {
+        cachedLocalIp = `http://${data.ip}:8080/`;
+        refreshAccessBarAndModal();
       }
     })
     .catch(() => {});
+
+  /**
+   * Updates the header button and the LAN modal content
+   * to match the current access configuration (Local or Web).
+   */
+  async function refreshAccessBarAndModal() {
+    const { mode, webUrl } = await getAccessConfig();
+    const isWebMode = mode === 'web' && webUrl;
+
+    // --- Header button ---
+    if (btnLanInfo) {
+      if (isWebMode) {
+        btnLanInfo.innerHTML = `
+          <svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="2" y1="12" x2="22" y2="12"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+          <span>Acesso Web</span>`;
+      } else {
+        btnLanInfo.innerHTML = `
+          <svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 20h.01" />
+            <path d="M8.5 16.429a5 5 0 0 1 7 0" />
+            <path d="M5 12.859a10 10 0 0 1 14 0" />
+            <path d="M1.5 9.288a15 15 0 0 1 21 0" />
+          </svg>
+          <span>Rede Wi-Fi</span>`;
+      }
+    }
+
+    // --- Modal content ---
+    if (isWebMode) {
+      if (lanModalTitle)    lanModalTitle.textContent    = 'Acesso Web (Endereço Virtual)';
+      if (lanModalSubtitle) lanModalSubtitle.textContent = 'Qualquer dispositivo com acesso à internet pode acessar o GiraFila pelo endereço Web configurado abaixo.';
+      if (lanUrlLabel)      lanUrlLabel.textContent      = 'Endereço Web';
+      if (lanUrlDisplay)    lanUrlDisplay.textContent    = webUrl;
+      if (lanInstructions)  lanInstructions.innerHTML    = `
+        <strong>Como usar:</strong>
+        <ul style="margin-left: var(--space-4); margin-top: 4px; display: flex; flex-direction: column; gap: 4px;">
+          <li>Abra o navegador em qualquer dispositivo.</li>
+          <li>Digite o endereço acima e acesse o GiraFila.</li>
+          <li>Não é necessário estar na mesma rede Wi-Fi.</li>
+        </ul>`;
+    } else {
+      if (lanModalTitle)    lanModalTitle.textContent    = 'Conectar Dispositivos (Rede Wi-Fi)';
+      if (lanModalSubtitle) lanModalSubtitle.innerHTML   = 'Qualquer smartphone, tablet ou computador conectado à mesma rede Wi-Fi desta máquina pode acessar o <strong>GiraFila</strong> e operar simultaneamente com os mesmos dados em tempo real!';
+      if (lanUrlLabel)      lanUrlLabel.textContent      = 'Endereço na Rede Local';
+      if (lanUrlDisplay)    lanUrlDisplay.textContent    = cachedLocalIp || 'Carregando...';
+      if (lanInstructions)  lanInstructions.innerHTML    = `
+        <strong>
+          <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"
+            style="margin-right: 4px; vertical-align: -2px;" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+          Como usar em campo:
+        </strong>
+        <ul style="margin-left: var(--space-4); margin-top: 4px; display: flex; flex-direction: column; gap: 4px;">
+          <li>Conecte o smartphone dos voluntários no mesmo Wi-Fi deste computador.</li>
+          <li>Abra o navegador do celular (Chrome, Safari, etc.) e digite o endereço acima.</li>
+          <li>Pronto! Cadastros na recepção e atendimentos nos postos são sincronizados na hora.</li>
+        </ul>`;
+    }
+  }
+
+  // Initial render based on saved config
+  refreshAccessBarAndModal();
+
+  // Listen for changes made in the Secret Menu modal
+  window.addEventListener('gf:accessConfigChanged', () => { refreshAccessBarAndModal(); });
 
   if (btnLanInfo && lanBackdrop) {
     btnLanInfo.addEventListener('click', () => {

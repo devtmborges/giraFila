@@ -390,7 +390,39 @@
         </div>
         <div class="search-bar-wrapper">
           <input type="search" class="form-input search-input" id="visitorSearchInput"
-            placeholder="Pesquisar por nome do visitante..." aria-label="Pesquisar Visitantes por nome">
+            placeholder="Pesquisar por nome ou ticket..." aria-label="Pesquisar visitantes por nome ou ticket">
+        </div>
+        <!-- Visitor Filters: Age & Type Toggles -->
+        <div class="visitor-filters-bar" id="visitorFiltersBar">
+          <div class="visitor-filter-group visitor-filter-age">
+            <label for="visitorFilterAge" class="visitor-filter-label">Idade</label>
+            <select id="visitorFilterAge" class="form-select visitor-filter-select" aria-label="Filtrar por faixa etária">
+              <option value="all">Todas as idades</option>
+              <option value="0-6">0 – 6 anos (Primeira Infância)</option>
+              <option value="7-12">7 – 12 anos (Criança)</option>
+              <option value="13-17">13 – 17 anos (Adolescente)</option>
+              <option value="18-59">18 – 59 anos (Adulto)</option>
+              <option value="60+">60+ anos (Melhor Idade)</option>
+            </select>
+          </div>
+          <div class="visitor-filter-group visitor-filter-service">
+            <label for="visitorFilterService" class="visitor-filter-label">Serviço</label>
+            <select id="visitorFilterService" class="form-select visitor-filter-select" aria-label="Filtrar por serviço atendido">
+              <option value="all">Todos os serviços</option>
+            </select>
+          </div>
+          <div class="visitor-filter-group visitor-filter-toggles">
+            <span class="visitor-filter-label">Tipo</span>
+            <div class="visitor-filter-pills" id="visitorTypePills" role="group" aria-label="Filtrar por tipo de participante">
+              <button type="button" class="visitor-pill-btn active" data-type="all">Todos</button>
+              <button type="button" class="visitor-pill-btn" data-type="children">Crianças</button>
+              <button type="button" class="visitor-pill-btn" data-type="family">Grupo Familiar</button>
+              <button type="button" class="visitor-pill-btn" data-type="adults">Adultos</button>
+            </div>
+            <button type="button" class="visitor-filter-reset-btn" id="btnResetVisitorFilters" style="display: none;" title="Limpar filtros">
+              ✕ Limpar
+            </button>
+          </div>
         </div>
         <div class="data-list" id="registeredVisitorsList">
           <p style="color: var(--color-text-muted); font-size: var(--font-size-sm); text-align: center; padding: 1rem;">
@@ -922,11 +954,11 @@
             <path d="M5 12.859a10 10 0 0 1 14 0" />
             <path d="M1.5 9.288a15 15 0 0 1 21 0" />
           </svg>
-          <span>Conectar Dispositivos (Rede Wi-Fi)</span>
+          <span id="lanModalTitleText">Conectar Dispositivos (Rede Wi-Fi)</span>
         </h2>
       </div>
       <div class="modal-body">
-        <p style="font-size: var(--font-size-sm); color: var(--color-text-muted);">
+        <p id="lanModalSubtitle" style="font-size: var(--font-size-sm); color: var(--color-text-muted);">
           Qualquer smartphone, tablet ou computador conectado à mesma rede Wi-Fi desta máquina pode acessar o
           <strong>GiraFila</strong> e operar simultaneamente com os mesmos dados em tempo real!
         </p>
@@ -936,7 +968,7 @@
           title="Clique ou toque para copiar">
           <div
             style="font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); color: var(--color-primary); text-transform: uppercase; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap;">
-            <span>Endereço na Rede Local</span>
+            <span id="lanUrlLabel">Endereço na Rede Local</span>
             <span style="font-size: 0.75rem; opacity: 0.85;">(toque para copiar)</span>
           </div>
           <div id="lanUrlDisplay"
@@ -957,7 +989,7 @@
           </button>
         </div>
 
-        <div
+        <div id="lanInstructions"
           style="font-size: var(--font-size-xs); color: var(--color-text-muted); background: #f8fafc; border-radius: var(--radius-sm); padding: var(--space-3); border: 1px solid var(--color-border);">
           <strong>
             <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"

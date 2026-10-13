@@ -27,7 +27,27 @@ Use the following format per version entry:
 - [Any important migration notes, breaking changes, or context]
 ```
 
+## v0.8.2 — 2026-10-10 — Endereço de Acesso no Menu Secreto
+
+### Added
+- Nova opção **Endereço de Acesso** no Hub do Menu Secreto (Card 3).
+- Modal exclusivo `#accessAddressBackdrop` com seletor segmentado Local/Web.
+- Modo Local: exibe IP da rede local obtido via `api.php?entity=info`.
+- Modo Web: campo de URL virtual com sanitização XSS, validação de formato e preview em tempo real.
+- Novo módulo utilitário `js/utils/accessConfig.js` (getAccessConfig, saveAccessConfig, sanitizeWebUrl, validateWebUrl, getActiveDisplayUrl).
+- Ícone `globe` adicionado ao sistema centralizado `js/utils/icons.js`.
+- Novos códigos de erro no catálogo SSOT: `GF-ACCESS-VAL-001` (URL vazia), `GF-ACCESS-VAL-002` (URL inválida).
+- Evento customizado `gf:accessConfigChanged` para propagação de mudança sem acoplamento.
+
+### Changed
+- Botão `#btnLanInfo` na barra superior atualiza ícone e rótulo dinamicamente conforme o modo ativo (Wi-Fi ↔ Globo / "Rede Wi-Fi" ↔ "Acesso Web").
+- Modal `#lanModalBackdrop` tem título, subtítulo, rótulo de endereço e instruções atualizados pelo modo ativo via `refreshAccessBarAndModal()`.
+- `js/app.js`: seção LAN reescrita com `refreshAccessBarAndModal()`, `cachedLocalIp`, e listener para `gf:accessConfigChanged`.
+
+---
+
 ## v0.8.1 — 2026-10-08 — Menu Secreto, Expurgo Físico Hierárquico & Hub Administrativo
+
 
 ### Added
 - Menu Secreto ativado por 5 cliques na aba Dashboard em até 10s, protegido por Senha Mestre.

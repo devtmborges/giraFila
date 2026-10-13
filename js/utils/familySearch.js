@@ -76,8 +76,16 @@ export function filterVisitorsByFamilyGroup(visitors, query) {
   const q = normalize(query);
   if (!q) return visitors;
 
-  // 1. Encontra os visitantes cujo nome contém a query
-  const directMatches = visitors.filter(v => normalize(v.name).includes(q));
+  // Extrai dígitos numéricos se houver para correspondência de ticket
+  const digitsOnly = query.replace(/\D/g, '');
+
+  // 1. Encontra os visitantes cujo nome contém a query OU cujo ticket corresponde
+  const directMatches = visitors.filter(v => {
+    const nameMatch = normalize(v.name).includes(q);
+    const qrStr = String(v.qr_code);
+    const qrMatch = qrStr === q || (digitsOnly && qrStr === digitsOnly) || qrStr.includes(q);
+    return nameMatch || qrMatch;
+  });
   if (directMatches.length === 0) return [];
 
   // 2. Resolve todos os QR codes de grupo para cada match direto

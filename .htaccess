@@ -1,0 +1,82 @@
+# ============================================================
+#  GiraFila — .htaccess
+#  Deploy: public_html/girafila/.htaccess
+#  Servidor: Apache (Hostinger Shared Hosting)
+# ============================================================
+
+# ------------------------------------------------------------
+# 1. LIBERAR api.php — OVERRIDE DO BLOQUEIO DE PHP DO SITE PAI
+#    O .htaccess raiz do public_html bloqueia TODOS os .php.
+#    Este bloco sobrescreve essa regra APENAS para api.php,
+#    que é o backend necessário para o armazenamento central
+#    (SQLite compartilhado entre dispositivos).
+# ------------------------------------------------------------
+<Files "api.php">
+    Order Allow,Deny
+    Allow from all
+    Satisfy Any
+</Files>
+
+# ------------------------------------------------------------
+# 2. AUTENTICAÇÃO HTTP BASIC
+#    Desabilitada — para reativar, descomente e ajuste o
+#    caminho do AuthUserFile conforme seu servidor Hostinger.
+# ------------------------------------------------------------
+# AuthType Basic
+# AuthName "GiraFila — Acesso Restrito"
+# AuthUserFile /home/u000000000/domains/404criativo.com.br/public_html/girafila/.htpasswd
+# Require valid-user
+
+# ------------------------------------------------------------
+# 2. BLOQUEAR LISTAGEM DE DIRETÓRIO
+#    Impede que alguém veja os arquivos navegando pela URL.
+# ------------------------------------------------------------
+Options -Indexes
+
+# ------------------------------------------------------------
+# 3. PROTEGER ARQUIVOS SENSÍVEIS
+#    Bloqueia acesso direto ao banco SQLite, arquivos de
+#    documentação e configuração que não devem ser públicos.
+# ------------------------------------------------------------
+<FilesMatch "\.(db|sqlite|md|bat|pdf|log|sh|env|json)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Protege o próprio .htpasswd explicitamente
+<Files ".htpasswd">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# ------------------------------------------------------------
+# 4. CABEÇALHOS DE SEGURANÇA
+# ------------------------------------------------------------
+<IfModule mod_headers.c>
+    # Evita que a página seja embutida em iframes externos
+    Header always set X-Frame-Options "SAMEORIGIN"
+    # Bloqueia sniffing de MIME type
+    Header always set X-Content-Type-Options "nosniff"
+    # Força HTTPS (só ativa se o site já tiver SSL)
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+</IfModule>
+
+# ------------------------------------------------------------
+# 5. CACHE PARA ASSETS ESTÁTICOS
+#    Melhora a performance do app após o primeiro carregamento.
+# ------------------------------------------------------------
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+</IfModule>
+
+# ------------------------------------------------------------
+# 6. COMPRESSÃO GZIP
+#    Reduz tamanho dos arquivos JS/CSS na transferência.
+# ------------------------------------------------------------
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css application/javascript
+</IfModule>

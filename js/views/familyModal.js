@@ -104,6 +104,13 @@ export async function openFamilyModal({ qrCode, eventId, onSelectTicket = null, 
     return Number(a.qr_code) - Number(b.qr_code);
   });
 
+  // Determine Family Anchor (adult responsible or anchor ticket)
+  const anchorAdult = targetVisitor.guardian_qr_code
+    ? (familyMembers.find(m => !m.is_child && Number(m.qr_code) === Number(targetVisitor.guardian_qr_code))
+       || (!targetVisitor.is_child ? targetVisitor : familyMembers.find(m => !m.is_child)))
+    : (!targetVisitor.is_child ? targetVisitor : familyMembers.find(m => !m.is_child));
+
+  const anchorQr = anchorAdult ? anchorAdult.qr_code : (targetVisitor.guardian_qr_code || numQr);
 
   // Load attendances and services for this event
   let attendances = [];

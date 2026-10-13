@@ -2,12 +2,34 @@
 
 > Documentação das funcionalidades incluídas na versão atual do GiraFila.
 
-- **Current Version:** v0.8.0-multi-adult-family
-- **Last Updated:** 2026-10-08
+- **Current Version:** v0.8.2-access-address
+- **Last Updated:** 2026-10-10
 
 ---
 
 ## Feature Overview
+
+### Módulo: Endereço de Acesso no Menu Secreto (v0.8.2)
+- **Nova opção no Hub do Menu Secreto**:
+  - Card **"Endereço de Acesso"** com botão **Configurar** (ícone globo), exclusivo ao Menu Secreto (acesso restrito por senha mestre).
+- **Modal Exclusivo de Configuração (`#accessAddressBackdrop`)**:
+  - Seletor segmentado **Local (Rede Wi-Fi)** / **Web (Endereço Virtual)**, com **Local** como padrão.
+  - **Modo Local:** exibe o IP da rede local (obtido via `api.php?entity=info`) e instruções de campo para Wi-Fi. Nenhuma configuração adicional necessária.
+  - **Modo Web:** exibe campo de texto para URL virtual da hospedagem (ex: `https://girafila.exemplo.com`) com validação XSS (sanitização por `js/utils/accessConfig.js`) e feedback de URL inválida. Preview em tempo real da URL digitada.
+  - Validações: `GF-ACCESS-VAL-001` (campo vazio) e `GF-ACCESS-VAL-002` (URL com formato inválido).
+  - Botão **Voltar** retorna ao Hub do Menu Secreto.
+  - Configuração salva em `localStorage` via `js/utils/accessConfig.js`.
+- **Atualização Dinâmica da Barra Superior**:
+  - Botão `#btnLanInfo` atualiza seu ícone e rótulo dinamicamente ao salvar:
+    - Modo Local → ícone Wi-Fi + rótulo **"Rede Wi-Fi"**.
+    - Modo Web → ícone Globo + rótulo **"Acesso Web"**.
+  - Mudança propagada via evento customizado `gf:accessConfigChanged`.
+- **Modal de Endereço para Voluntários (`#lanModalBackdrop`)**:
+  - Títulos, subtítulos, rótulos e instruções atualizados dinamicamente conforme o modo ativo.
+  - Modo Web exibe o endereço virtual configurado para cópia; Modo Local exibe o IP da rede.
+- **Novos Arquivos**: `js/utils/accessConfig.js`.
+- **Novos Ícones**: `globe` em `js/utils/icons.js`.
+- **Novos Códigos de Erro no Catálogo SSOT**: `GF-ACCESS-VAL-001`, `GF-ACCESS-VAL-002`.
 
 ### Módulo: Menu Secreto com Autenticação Mestre & Limpeza Hierárquica de Dados (v0.8.1)
 - **Gatilho de Ativação Oculto**:
@@ -145,8 +167,9 @@
 
 ### Módulo: Cadastro de Participantes / Visitantes (Tela 1)
 - `createVisitor` — Cadastro com validação de QR Code único por evento, campos obrigatórios de Gênero (`Masculino`/`Feminino`) e Idade (`0 a 120 anos`), e validação de vínculo responsável adulto/criança.
-- `updateVisitor` — Edição modal de nome, gênero, idade e telefone. QR Code e `event_id` são imutáveis para integridade do ticket físico.
+- `updateVisitor` — Edição modal completa com suporte a alternância dinâmica de toggles (Criança / Grupo Familiar / Adulto Solo), campos dinâmicos de telefone e responsável/família com busca em tempo real e scanner de câmera, protegendo contra auto-referência e bloqueando conversão de adultos com dependentes vinculados (`GF-VISIT-REG-007`). QR Code e `event_id` são imutáveis para integridade do ticket físico.
 - `deleteVisitor` — Exclusão com confirmação e telemetria de auditoria (`logAudit`).
+- **Filtros de Pesquisa e Visualização de Participantes** — Barra de filtros posicionada abaixo do campo de busca por nome ou ticket, composta por seletor dropdown de faixas etárias padronizadas (`Idade`: `Todas`, `0–6 anos`, `7–12 anos`, `13–17 anos`, `18–59 anos`, `60+ anos`), seletor dropdown dinâmico de postos atendidos (`Serviço`: populado reativamente com os serviços do evento ativo e filtrando por participantes atendidos naquele posto) posicionado estrategicamente entre Idade e Tipo, e botões em estilo pílula/toggle de alternância rápida por tipo (`Tipo`: `Todos`, `Crianças`, `Grupo Familiar`, `Adultos`), com botão contextual de limpeza de filtros e busca integrada por nome ou número do ticket com expansão por grupo familiar.
 
 ### Módulo: Atendimento Operacional (Tela 4)
 - `createAttendance` — Confirmação de atendimento operacional com bloqueio antifraude contra duplicidade (`GF-ATTEND-REG-002`) e validação de público.

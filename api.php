@@ -1,6 +1,6 @@
 <?php
 /**
- * GiraFila — Lightweight LAN Central Persistence API (SQLite)
+ * GiraFila � Lightweight LAN Central Persistence API (SQLite)
  * Aligned with HARNESS/Security/SecurityGovernance.md and DatabaseAndRls.md
  * Zero external dependencies: Uses native PHP 8.4 PDO SQLite
  */
@@ -122,6 +122,23 @@ try {
             ]);
             break;
 
+
+        case 'config':
+            // Key-value store in SQLite  shared across all devices
+            $pdo->exec("CREATE TABLE IF NOT EXISTS app_config (key TEXT PRIMARY KEY, value TEXT NOT NULL DEFAULT '');");
+            if ($method === 'GET') {
+                $stmt = $pdo->query("SELECT key, value FROM app_config");
+                $rows = $stmt->fetchAll();
+                $result = [];
+                foreach ($rows as $row) { $result[$row['key']] = $row['value']; }
+                echo json_encode($result);
+            } elseif ($method === 'POST') {
+                $data = getJsonInput();
+                $stmt = $pdo->prepare("INSERT INTO app_config (key, value) VALUES (:key, :value) ON CONFLICT(key) DO UPDATE SET value = excluded.value");
+                foreach ($data as $key => $value) { $stmt->execute([':key' => $key, ':value' => $value]); }
+                echo json_encode(['ok' => true]);
+            }
+            break;
         case 'events':
             if ($method === 'GET') {
                 $stmt = $pdo->query("SELECT * FROM events ORDER BY id DESC");
@@ -364,15 +381,19 @@ try {
             } elseif ($method === 'PUT') {
                 $id = (int)($_GET['id'] ?? 0);
                 $data = getJsonInput();
-                $hasPhone = !empty($data['has_phone']) ? 1 : 0;
-                $phone = $hasPhone ? ($data['phone'] ?? null) : null;
-                $stmt = $pdo->prepare("UPDATE visitors SET name = :name, gender = :gender, age = :age, phone = :phone, has_phone = :has_phone WHERE id = :id");
+                $isChild = !empty($data['is_child']) ? 1 : 0;
+                $guardianQrCode = !empty($data['guardian_qr_code']) ? (int)$data['guardian_qr_code'] : null;
+                $hasPhone = $isChild ? 0 : (!empty($data['has_phone']) ? 1 : 0);
+                $phone = (!$isChild && $hasPhone) ? ($data['phone'] ?? null) : null;
+                $stmt = $pdo->prepare("UPDATE visitors SET name = :name, gender = :gender, age = :age, is_child = :is_child, phone = :phone, has_phone = :has_phone, guardian_qr_code = :guardian_qr_code WHERE id = :id");
                 $stmt->execute([
                     ':name' => $data['name'],
                     ':gender' => $data['gender'] ?? null,
                     ':age' => isset($data['age']) && $data['age'] !== '' ? (int)$data['age'] : null,
+                    ':is_child' => $isChild,
                     ':phone' => $phone,
                     ':has_phone' => $hasPhone,
+                    ':guardian_qr_code' => $guardianQrCode,
                     ':id' => $id
                 ]);
                 $row = $pdo->query("SELECT * FROM visitors WHERE id = $id")->fetch();
@@ -561,7 +582,7 @@ try {
             break;
 
         case 'counts':
-            // Returns record counts per entity — used by Secret Menu to populate toggle badges
+            // Returns record counts per entity � used by Secret Menu to populate toggle badges
             echo json_encode([
                 'events'      => (int)$pdo->query("SELECT COUNT(*) FROM events")->fetchColumn(),
                 'services'    => (int)$pdo->query("SELECT COUNT(*) FROM services")->fetchColumn(),
@@ -584,14 +605,14 @@ try {
 
             $deleted = ['attendances' => 0, 'visitors' => 0, 'services' => 0, 'events' => 0];
 
-            // 1º — Atendimentos (libera vínculos com visitantes e serviços)
+            // 1º � Atendimentos (libera vínculos com visitantes e serviços)
             if ($cleanAttendances) {
                 $deleted['attendances'] = (int)$pdo->query("SELECT COUNT(*) FROM attendances")->fetchColumn();
                 $pdo->exec("DELETE FROM attendances");
                 $pdo->exec("DELETE FROM audit_logs WHERE entity = 'attendances'");
             }
 
-            // 2º — Visitantes (um grupo familiar por vez, excluindo primeiro as crianças depois os adultos)
+            // 2º � Visitantes (um grupo familiar por vez, excluindo primeiro as crianças depois os adultos)
             if ($cleanVisitors) {
                 $deleted['visitors'] = (int)$pdo->query("SELECT COUNT(*) FROM visitors")->fetchColumn();
 
@@ -619,14 +640,14 @@ try {
                 $pdo->exec("DELETE FROM audit_logs WHERE entity = 'visitors'");
             }
 
-            // 3º — Serviços (sem atendimentos restantes)
+            // 3º � Serviços (sem atendimentos restantes)
             if ($cleanServices) {
                 $deleted['services'] = (int)$pdo->query("SELECT COUNT(*) FROM services")->fetchColumn();
                 $pdo->exec("DELETE FROM services");
                 $pdo->exec("DELETE FROM audit_logs WHERE entity = 'services'");
             }
 
-            // 4º — Eventos
+            // 4º � Eventos
             if ($cleanEvents) {
                 $deleted['events'] = (int)$pdo->query("SELECT COUNT(*) FROM events")->fetchColumn();
                 $pdo->exec("DELETE FROM events");

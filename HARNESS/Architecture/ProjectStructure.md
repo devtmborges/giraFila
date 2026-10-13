@@ -53,8 +53,8 @@ This file is the **navigation index** for all guides inside the `HARNESS/` direc
 
 - **Repository**: GiraFila
 - **Main Branch**: main
-- **Current Version**: 0.8.1-secret-menu
-- **Last Updated**: 2026-10-08 — Menu Secreto protegido por senha mestre acionado por 5 cliques na aba Dashboard em até 10s, expurgo físico hierárquico antiórfãos com VACUUM e sem retenção por tags, hub administrativo limpo com modais exclusivos para Limpeza e Exportação com retorno bidirecional.
+- **Current Version**: 0.8.2-access-address
+- **Last Updated**: 2026-10-10 — Endereço de Acesso no Menu Secreto: toggle Local/Web com salvar configuração em localStorage, atualização dinâmica do botão da barra e conteudo do modal de endereço, novo módulo `accessConfig.js` e códigos de erro `GF-ACCESS-VAL-001/002`.
 - **Core Files**:
   - `index.html` — Shell da SPA e navegação principal
   - `css/variables.css` — Design tokens e camadas Z-Index
@@ -69,6 +69,7 @@ This file is the **navigation index** for all guides inside the `HARNESS/` direc
   - `js/utils/clipboard.js` — Cópia universal cross-platform (iOS, Android, Windows, Mac, Linux)
   - `js/utils/qrScanner.js` — Leitor de QR Code via câmera do dispositivo
   - `js/utils/icons.js` — Sistema centralizado de ícones vetoriais lineares (SVGs austeros)
+  - `js/utils/accessConfig.js` — Leitura, validação, saneamento e persistência da configuração de acesso (Local vs Web)
   - `js/utils/masterPassword.js` — Gestão, hashing SHA-256 e persistência da senha mestre de exportação
   - `js/utils/xlsxExporter.js` — Geração e download client-side de planilhas Excel (.xlsx) multi-aba via SheetJS
   - `js/views/sessionModal.js` — Seleção de contexto por sessão (Evento + Serviço)

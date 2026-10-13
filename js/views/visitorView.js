@@ -4,7 +4,7 @@
  */
 
 import { getSession } from './sessionModal.js';
-import { createVisitor, getVisitorByQrAndEvent, getVisitorsByEventId, updateVisitor, deleteVisitor, getVisitorById, getAttendancesByEventId } from '../services/storageService.js';
+import { createVisitor, getVisitorByQrAndEvent, getVisitorsByEventId, updateVisitor, deleteVisitor, getVisitorById, getAttendancesByEventId, getServicesByEventId } from '../services/storageService.js';
 import { verifyPassword } from '../utils/masterPassword.js';
 import { sanitizeText, capitalizeWords, formatPhoneNumber, parseQrTicketNumber } from '../utils/sanitizer.js';
 import { showToast, showSuccess, showErrorModal } from '../services/errorHandler.js';
@@ -36,12 +36,21 @@ export function initVisitorView() {
   const visitorsList = document.getElementById('registeredVisitorsList');
   const visitorCountBadge = document.getElementById('visitorCountBadge');
   const visitorSearchInput = document.getElementById('visitorSearchInput');
+  const visitorFilterAge = document.getElementById('visitorFilterAge');
+  const visitorFilterService = document.getElementById('visitorFilterService');
+  const visitorTypePills = document.getElementById('visitorTypePills');
+  const btnResetVisitorFilters = document.getElementById('btnResetVisitorFilters');
 
   if (!form) return;
 
   // Cache de dados para filtragem client-side
   let cachedVisitors = [];
+  let cachedServices = [];
+  let cachedAttendances = [];
   let visitorSearchDebounce = null;
+  let activeAgeFilter = 'all';
+  let activeServiceFilter = 'all';
+  let activeTypeFilter = 'all';
 
   // Camera scan for visitor ticket
   if (btnScanVisitorQr) {
@@ -450,39 +459,13 @@ export function initVisitorView() {
     backdrop.className = 'modal-backdrop active';
     backdrop.style.zIndex = 'var(--z-modal-backdrop)';
 
-    const typeBadge = visitor.is_child
-      ? `<span class="badge badge-child">Criança (Resp: #${visitor.guardian_qr_code})</span>`
-      : `<span class="badge badge-adult">Adulto</span>`;
-
-    const phoneSectionHtml = !visitor.is_child ? `
-      <div id="editVisitorPhoneContainer" class="form-group">
-        <label class="form-label" for="editVisitorPhone">Telefone de Contato</label>
-        <input
-          type="tel"
-          id="editVisitorPhone"
-          class="form-input"
-          placeholder="(XX) XXXXX-XXXX"
-          maxlength="15"
-          inputmode="tel"
-          value="${escapeHtml(visitor.phone || '')}"
-          ${!visitor.has_phone ? 'disabled' : ''}
-        >
-        <div class="toggle-wrapper"
-          style="margin-top: var(--space-2); padding: var(--space-2) var(--space-3); background-color: var(--color-surface-hover); border-radius: var(--radius-sm);">
-          <label class="toggle-label" for="editVisitorNoPhone" style="cursor: pointer;">
-            <strong>Não possui telefone</strong>
-            <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">Marque caso o participante não possua número de contato</div>
-          </label>
-          <label class="toggle-switch">
-            <input type="checkbox" id="editVisitorNoPhone" ${!visitor.has_phone ? 'checked' : ''}>
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-      </div>
-    ` : '';
+    const session = getSession();
+    const eventId = session.eventId || visitor.event_id;
+    const initialIsChild = Boolean(visitor.is_child);
+    const initialIsFamily = !initialIsChild && Boolean(visitor.guardian_qr_code);
 
     backdrop.innerHTML = `
-      <div class="modal-dialog" role="dialog" aria-modal="true" style="z-index: var(--z-modal-primary);">
+      <div class="modal-dialog" role="dialog" aria-modal="true" style="z-index: var(--z-modal-primary); max-width: 520px; width: 100%;">
         <div class="modal-header">
           <h3 class="card-title" style="display: flex; align-items: center; gap: 8px;">
             ${getIcon('pencil', 18)}
@@ -492,9 +475,8 @@ export function initVisitorView() {
         </div>
         <form id="editVisitorModalForm">
           <div class="modal-body">
-            <div style="display: flex; align-items: center; gap: 8px; padding: var(--space-2) var(--space-3); background: var(--color-surface-hover); border-radius: var(--radius-sm); font-size: var(--font-size-sm);">
+            <div style="display: flex; align-items: center; gap: 8px; padding: var(--space-2) var(--space-3); background: var(--color-surface-hover); border-radius: var(--radius-sm); font-size: var(--font-size-sm); margin-bottom: var(--space-3);">
               <strong>Ticket #${visitor.qr_code}</strong>
-              ${typeBadge}
               <span style="font-size: var(--font-size-xs); color: var(--color-text-muted); margin-left: auto;">(QR Code imutável)</span>
             </div>
             <div class="form-group">
@@ -523,7 +505,97 @@ export function initVisitorView() {
                 >
               </div>
             </div>
-            ${phoneSectionHtml}
+
+            <!-- Toggle Criança -->
+            <div class="toggle-wrapper"
+              style="background-color: var(--color-surface-hover); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); margin-top: var(--space-3);">
+              <label class="toggle-label" for="editVisitorIsChild" style="cursor: pointer;">
+                <strong>É menor de idade (Criança)?</strong>
+                <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">
+                  Exige vínculo obrigatório com um adulto responsável
+                </div>
+              </label>
+              <label class="toggle-switch">
+                <input type="checkbox" id="editVisitorIsChild" ${initialIsChild ? 'checked' : ''}>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <!-- Toggle Grupo Familiar -->
+            <div class="toggle-wrapper"
+              style="background-color: var(--color-surface-hover); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); margin-top: var(--space-2);">
+              <label class="toggle-label" for="editVisitorIsFamily" style="cursor: pointer;">
+                <strong>Grupo Familiar</strong>
+                <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">
+                  Vincular este adulto a outro adulto já cadastrado na família
+                </div>
+              </label>
+              <label class="toggle-switch">
+                <input type="checkbox" id="editVisitorIsFamily" ${initialIsFamily ? 'checked' : ''}>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <!-- Dynamic Family Adult Section (When Grupo Familiar = true) -->
+            <div id="editVisitorFamilyContainer" class="form-group" style="${initialIsFamily ? '' : 'display: none;'} margin-top: var(--space-3);">
+              <label class="form-label" for="editVisitorFamilyQr">
+                <span>Vincular a outro adulto?</span>
+                <button type="button" class="btn btn-secondary" id="btnScanEditFamilyQr"
+                  style="display: none; min-height: 28px; padding: 2px 8px; font-size: var(--font-size-xs);">
+                  ${getIcon('camera', 13)}
+                  <span>Escanear</span>
+                </button>
+              </label>
+              <input type="number" id="editVisitorFamilyQr" class="form-input"
+                placeholder="Digite o número do ticket do outro adulto" min="1" max="9999" inputmode="numeric"
+                value="${initialIsFamily ? (visitor.guardian_qr_code || '') : ''}">
+              <span class="form-error-msg" id="editVisitorFamilyQrError">Informe o ticket do outro adulto para vincular a família.</span>
+              <div id="editVisitorFamilyInfo" class="form-error-msg"></div>
+            </div>
+
+            <!-- Dynamic Phone Section (When Criança = false) -->
+            <div id="editVisitorPhoneContainer" class="form-group" style="${initialIsChild ? 'display: none;' : ''} margin-top: var(--space-3);">
+              <label class="form-label" for="editVisitorPhone">Telefone de Contato</label>
+              <input
+                type="tel"
+                id="editVisitorPhone"
+                class="form-input"
+                placeholder="(XX) XXXXX-XXXX"
+                maxlength="15"
+                inputmode="tel"
+                value="${escapeHtml(visitor.phone || '')}"
+                ${!visitor.has_phone ? 'disabled' : ''}
+              >
+              <span class="form-error-msg" id="editVisitorPhoneError">Informe o telefone completo no formato (XX) XXXXX-XXXX.</span>
+              <div class="toggle-wrapper"
+                style="margin-top: var(--space-2); padding: var(--space-2) var(--space-3); background-color: var(--color-surface-hover); border-radius: var(--radius-sm);">
+                <label class="toggle-label" for="editVisitorNoPhone" style="cursor: pointer;">
+                  <strong>Não possui telefone</strong>
+                  <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">Marque caso o participante não possua número de contato</div>
+                </label>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="editVisitorNoPhone" ${!visitor.has_phone ? 'checked' : ''}>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Dynamic Guardian Section (When Criança = true) -->
+            <div id="editVisitorGuardianContainer" class="form-group" style="${initialIsChild ? '' : 'display: none;'} margin-top: var(--space-3);">
+              <label class="form-label" for="editVisitorGuardianQr">
+                <span>Número do QR Code do Adulto Responsável</span>
+                <button type="button" class="btn btn-secondary" id="btnScanEditGuardianQr"
+                  style="display: none; min-height: 28px; padding: 2px 8px; font-size: var(--font-size-xs);">
+                  ${getIcon('camera', 13)}
+                  <span>Escanear</span>
+                </button>
+              </label>
+              <input type="number" id="editVisitorGuardianQr" class="form-input"
+                placeholder="Digite o número do ticket do adulto responsável" min="1" max="9999" inputmode="numeric"
+                value="${initialIsChild ? (visitor.guardian_qr_code || '') : ''}">
+              <span class="form-error-msg" id="editVisitorGuardianQrError">O QR Code do adulto responsável é obrigatório.</span>
+              <div id="editVisitorGuardianInfo" class="form-error-msg"></div>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" id="btnEditVisitorCancel">Cancelar</button>
@@ -543,28 +615,183 @@ export function initVisitorView() {
     const inputModalName = backdrop.querySelector('#editVisitorName');
     const selectModalGender = backdrop.querySelector('#editVisitorGender');
     const inputModalAge = backdrop.querySelector('#editVisitorAge');
+    const toggleModalChild = backdrop.querySelector('#editVisitorIsChild');
+    const toggleModalFamily = backdrop.querySelector('#editVisitorIsFamily');
+    const phoneContainer = backdrop.querySelector('#editVisitorPhoneContainer');
     const inputModalPhone = backdrop.querySelector('#editVisitorPhone');
     const toggleModalNoPhone = backdrop.querySelector('#editVisitorNoPhone');
+    const familyContainer = backdrop.querySelector('#editVisitorFamilyContainer');
+    const inputModalFamilyQr = backdrop.querySelector('#editVisitorFamilyQr');
+    const btnScanEditFamilyQr = backdrop.querySelector('#btnScanEditFamilyQr');
+    const familyInfo = backdrop.querySelector('#editVisitorFamilyInfo');
+    const guardianContainer = backdrop.querySelector('#editVisitorGuardianContainer');
+    const inputModalGuardianQr = backdrop.querySelector('#editVisitorGuardianQr');
+    const btnScanEditGuardianQr = backdrop.querySelector('#btnScanEditGuardianQr');
+    const guardianInfo = backdrop.querySelector('#editVisitorGuardianInfo');
+
+    // Camera scan buttons
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      if (btnScanEditGuardianQr) {
+        btnScanEditGuardianQr.style.display = 'inline-flex';
+        btnScanEditGuardianQr.addEventListener('click', () => {
+          openNativeCamera((detectedTicket) => {
+            inputModalGuardianQr.value = detectedTicket;
+            inputModalGuardianQr.dispatchEvent(new Event('input'));
+          });
+        });
+      }
+      if (btnScanEditFamilyQr) {
+        btnScanEditFamilyQr.style.display = 'inline-flex';
+        btnScanEditFamilyQr.addEventListener('click', () => {
+          openNativeCamera((detectedTicket) => {
+            inputModalFamilyQr.value = detectedTicket;
+            inputModalFamilyQr.dispatchEvent(new Event('input'));
+          });
+        });
+      }
+    }
 
     inputModalName.addEventListener('blur', () => {
       inputModalName.value = capitalizeWords(inputModalName.value);
     });
 
-    if (inputModalPhone && toggleModalNoPhone) {
-      inputModalPhone.addEventListener('input', (e) => {
-        e.target.value = formatPhoneNumber(e.target.value);
-      });
+    inputModalPhone.addEventListener('input', (e) => {
+      e.target.value = formatPhoneNumber(e.target.value);
+    });
 
-      toggleModalNoPhone.addEventListener('change', () => {
-        if (toggleModalNoPhone.checked) {
-          inputModalPhone.value = '';
-          inputModalPhone.disabled = true;
-          inputModalPhone.classList.remove('has-error');
+    toggleModalNoPhone.addEventListener('change', () => {
+      if (toggleModalNoPhone.checked) {
+        inputModalPhone.value = '';
+        inputModalPhone.disabled = true;
+        inputModalPhone.classList.remove('has-error');
+        const err = backdrop.querySelector('#editVisitorPhoneError');
+        if (err) err.classList.remove('visible');
+      } else {
+        inputModalPhone.disabled = false;
+        inputModalPhone.focus();
+      }
+    });
+
+    // Visibility toggling
+    const updateModalVisibility = () => {
+      const isChild = toggleModalChild.checked;
+      const isFamily = toggleModalFamily.checked;
+
+      if (isChild) {
+        phoneContainer.style.display = 'none';
+        familyContainer.style.display = 'none';
+        guardianContainer.style.display = 'flex';
+        if (familyInfo) { familyInfo.textContent = ''; familyInfo.className = 'form-error-msg'; }
+        if (inputModalFamilyQr) inputModalFamilyQr.value = '';
+      } else if (isFamily) {
+        phoneContainer.style.display = 'flex';
+        familyContainer.style.display = 'flex';
+        guardianContainer.style.display = 'none';
+        if (guardianInfo) { guardianInfo.textContent = ''; guardianInfo.className = 'form-error-msg'; }
+        if (inputModalGuardianQr) inputModalGuardianQr.value = '';
+      } else {
+        phoneContainer.style.display = 'flex';
+        familyContainer.style.display = 'none';
+        guardianContainer.style.display = 'none';
+        if (guardianInfo) { guardianInfo.textContent = ''; guardianInfo.className = 'form-error-msg'; }
+        if (familyInfo) { familyInfo.textContent = ''; familyInfo.className = 'form-error-msg'; }
+        if (inputModalGuardianQr) inputModalGuardianQr.value = '';
+        if (inputModalFamilyQr) inputModalFamilyQr.value = '';
+      }
+    };
+
+    toggleModalChild.addEventListener('change', () => {
+      if (toggleModalChild.checked && toggleModalFamily) toggleModalFamily.checked = false;
+      updateModalVisibility();
+    });
+    toggleModalFamily.addEventListener('change', () => {
+      if (toggleModalFamily.checked && toggleModalChild) toggleModalChild.checked = false;
+      updateModalVisibility();
+    });
+
+    // Real-time Guardian Validation (Child mode)
+    let guardianTimeout = null;
+    const validateGuardianTicket = () => {
+      clearTimeout(guardianTimeout);
+      const qrVal = parseQrTicketNumber(inputModalGuardianQr.value);
+      guardianInfo.textContent = '';
+      guardianInfo.className = 'form-error-msg';
+      guardianInfo.style.color = '';
+      inputModalGuardianQr.classList.remove('has-error');
+
+      if (!qrVal) return;
+
+      if (qrVal === Number(visitor.qr_code)) {
+        guardianInfo.innerHTML = getIcon('alertTriangle', 14) + ' <span>O responsável não pode ser o próprio participante.</span>';
+        guardianInfo.className = 'form-error-msg visible';
+        inputModalGuardianQr.classList.add('has-error');
+        return;
+      }
+
+      guardianTimeout = setTimeout(async () => {
+        const guardian = await getVisitorByQrAndEvent(qrVal, eventId);
+        if (!guardian) {
+          guardianInfo.innerHTML = getIcon('alertTriangle', 14) + ' <span>Nenhum participante encontrado com este QR no evento atual.</span>';
+          guardianInfo.className = 'form-error-msg visible';
+          inputModalGuardianQr.classList.add('has-error');
+        } else if (guardian.is_child) {
+          guardianInfo.innerHTML = getIcon('alertTriangle', 14) + ' <span>O ticket pertence a uma criança. O responsável deve ser um adulto.</span>';
+          guardianInfo.className = 'form-error-msg visible';
+          inputModalGuardianQr.classList.add('has-error');
         } else {
-          inputModalPhone.disabled = false;
-          inputModalPhone.focus();
+          guardianInfo.innerHTML = getIcon('check', 14) + ` <span>Adulto Responsável: ${escapeHtml(guardian.name)}</span>`;
+          guardianInfo.className = 'form-error-msg visible';
+          guardianInfo.style.color = 'var(--color-accent)';
+          inputModalGuardianQr.classList.remove('has-error');
         }
-      });
+      }, 300);
+    };
+    inputModalGuardianQr.addEventListener('input', validateGuardianTicket);
+
+    // Real-time Family Adult Validation (Family mode)
+    let familyTimeout = null;
+    const validateFamilyTicket = () => {
+      clearTimeout(familyTimeout);
+      const qrVal = parseQrTicketNumber(inputModalFamilyQr.value);
+      familyInfo.textContent = '';
+      familyInfo.className = 'form-error-msg';
+      familyInfo.style.color = '';
+      inputModalFamilyQr.classList.remove('has-error');
+
+      if (!qrVal) return;
+
+      if (qrVal === Number(visitor.qr_code)) {
+        familyInfo.innerHTML = getIcon('alertTriangle', 14) + ' <span>O ticket não pode ser o mesmo do participante sendo editado.</span>';
+        familyInfo.className = 'form-error-msg visible';
+        inputModalFamilyQr.classList.add('has-error');
+        return;
+      }
+
+      familyTimeout = setTimeout(async () => {
+        const linked = await getVisitorByQrAndEvent(qrVal, eventId);
+        if (!linked) {
+          familyInfo.innerHTML = getIcon('alertTriangle', 14) + ' <span>Nenhum adulto encontrado com este ticket no evento atual.</span>';
+          familyInfo.className = 'form-error-msg visible';
+          inputModalFamilyQr.classList.add('has-error');
+        } else if (linked.is_child) {
+          familyInfo.innerHTML = getIcon('alertTriangle', 14) + ' <span>Vínculo inválido: o ticket pertence a uma criança.</span>';
+          familyInfo.className = 'form-error-msg visible';
+          inputModalFamilyQr.classList.add('has-error');
+        } else {
+          familyInfo.innerHTML = getIcon('check', 14) + ` <span>Adulto encontrado: ${escapeHtml(linked.name)}</span>`;
+          familyInfo.className = 'form-error-msg visible';
+          familyInfo.style.color = 'var(--color-accent)';
+          inputModalFamilyQr.classList.remove('has-error');
+        }
+      }, 300);
+    };
+    inputModalFamilyQr.addEventListener('input', validateFamilyTicket);
+
+    // Trigger initial lookup if editing pre-existing relationship
+    if (initialIsChild && visitor.guardian_qr_code) {
+      validateGuardianTicket();
+    } else if (initialIsFamily && visitor.guardian_qr_code) {
+      validateFamilyTicket();
     }
 
     modalForm.onsubmit = async (evt) => {
@@ -590,19 +817,89 @@ export function initVisitorView() {
         return;
       }
 
-      let phone = null;
-      let hasPhone = false;
+      const newIsChild = toggleModalChild.checked;
+      const newIsFamily = toggleModalFamily.checked;
+      let newPhone = null;
+      let newHasPhone = false;
+      let newGuardianQr = null;
 
-      if (!visitor.is_child) {
-        hasPhone = !toggleModalNoPhone.checked;
-        if (hasPhone) {
+      // Integrity check: If converting an adult to child, ensure they are not guardian for others
+      if (newIsChild && !visitor.is_child) {
+        try {
+          const currentEventVisitors = await getVisitorsByEventId(eventId);
+          const isGuardianForOthers = currentEventVisitors.some(
+            v => v.id !== visitor.id && Number(v.guardian_qr_code) === Number(visitor.qr_code)
+          );
+          if (isGuardianForOthers) {
+            showErrorModal('GF-VISIT-REG-007');
+            return;
+          }
+        } catch {
+          // Fallback continue
+        }
+      }
+
+      if (newIsChild) {
+        newGuardianQr = parseQrTicketNumber(inputModalGuardianQr.value);
+        if (!newGuardianQr) {
+          inputModalGuardianQr.classList.add('has-error');
+          showToast('GF-VISIT-VAL-003', 'error');
+          return;
+        }
+        if (newGuardianQr === Number(visitor.qr_code)) {
+          inputModalGuardianQr.classList.add('has-error');
+          showErrorModal('GF-VISIT-REG-006');
+          return;
+        }
+        const guardian = await getVisitorByQrAndEvent(newGuardianQr, eventId);
+        if (!guardian || guardian.is_child) {
+          inputModalGuardianQr.classList.add('has-error');
+          showErrorModal('GF-VISIT-REG-002');
+          return;
+        }
+      } else if (newIsFamily) {
+        newHasPhone = !toggleModalNoPhone.checked;
+        if (newHasPhone) {
           const digits = inputModalPhone.value.replace(/\D/g, '');
           if (digits.length < 10) {
+            inputModalPhone.classList.add('has-error');
             showToast('GF-VISIT-VAL-002', 'error');
             return;
           }
-          phone = inputModalPhone.value;
+          newPhone = inputModalPhone.value;
         }
+
+        const familyQrVal = parseQrTicketNumber(inputModalFamilyQr.value);
+        if (!familyQrVal) {
+          inputModalFamilyQr.classList.add('has-error');
+          showToast('GF-VISIT-VAL-007', 'error');
+          return;
+        }
+        if (familyQrVal === Number(visitor.qr_code)) {
+          inputModalFamilyQr.classList.add('has-error');
+          showErrorModal('GF-VISIT-REG-006');
+          return;
+        }
+        const linked = await getVisitorByQrAndEvent(familyQrVal, eventId);
+        if (!linked || linked.is_child) {
+          inputModalFamilyQr.classList.add('has-error');
+          showErrorModal('GF-VISIT-REG-006');
+          return;
+        }
+        newGuardianQr = familyQrVal;
+      } else {
+        // Solo adult
+        newHasPhone = !toggleModalNoPhone.checked;
+        if (newHasPhone) {
+          const digits = inputModalPhone.value.replace(/\D/g, '');
+          if (digits.length < 10) {
+            inputModalPhone.classList.add('has-error');
+            showToast('GF-VISIT-VAL-002', 'error');
+            return;
+          }
+          newPhone = inputModalPhone.value;
+        }
+        newGuardianQr = null;
       }
 
       try {
@@ -610,8 +907,10 @@ export function initVisitorView() {
           name: cleanName,
           gender: editGender,
           age: editAgeNum,
-          phone,
-          has_phone: hasPhone
+          is_child: newIsChild,
+          phone: newPhone,
+          has_phone: newHasPhone,
+          guardian_qr_code: newGuardianQr
         });
 
         showSuccess(`Participante "${cleanName}" atualizado com sucesso!`);
@@ -773,14 +1072,29 @@ export function initVisitorView() {
   }
 
   // Render registered visitors list
-  function renderVisitorList(visitors) {
+  function renderVisitorList(visitors, hasActiveFilters = false) {
     if (!visitorsList) return;
 
     if (visitors.length === 0) {
-      const queryActive = visitorSearchInput && visitorSearchInput.value.trim();
-      visitorsList.innerHTML = queryActive
-        ? `<div class="search-no-results"><strong>Nenhum resultado encontrado</strong>Nenhum participante corresponde a "${escapeHtml(visitorSearchInput.value.trim())}".</div>`
-        : '<p style="color: var(--color-text-muted); font-size: var(--font-size-sm); text-align: center; padding: 1rem;">Nenhum visitante cadastrado neste evento ainda.</p>';
+      if (hasActiveFilters) {
+        visitorsList.innerHTML = `
+          <div class="search-no-results">
+            <strong>Nenhum resultado encontrado</strong>
+            <span>Nenhum participante corresponde aos filtros selecionados.</span>
+            <div style="margin-top: var(--space-2);">
+              <button type="button" class="btn btn-secondary" id="btnEmptyResetFilters" style="min-height: 30px; font-size: var(--font-size-xs); padding: 4px 12px;">
+                Limpar Filtros
+              </button>
+            </div>
+          </div>
+        `;
+        const btnEmptyReset = visitorsList.querySelector('#btnEmptyResetFilters');
+        if (btnEmptyReset) {
+          btnEmptyReset.onclick = resetAllFilters;
+        }
+      } else {
+        visitorsList.innerHTML = '<p style="color: var(--color-text-muted); font-size: var(--font-size-sm); text-align: center; padding: 1rem;">Nenhum visitante cadastrado neste evento ainda.</p>';
+      }
       return;
     }
 
@@ -824,21 +1138,153 @@ export function initVisitorView() {
     }).join('');
   }
 
-  function applyVisitorSearch() {
+  function applyVisitorFilters() {
+    let result = [...cachedVisitors];
+
+    // 1. Filtro de pesquisa de texto / ticket
     const query = visitorSearchInput ? visitorSearchInput.value.trim() : '';
-    if (!query) {
-      renderVisitorList(cachedVisitors);
-      return;
+    if (query) {
+      result = filterVisitorsByFamilyGroup(result, query);
     }
-    const filtered = filterVisitorsByFamilyGroup(cachedVisitors, query);
-    renderVisitorList(filtered);
+
+    // 2. Filtro de Faixa Etária
+    if (activeAgeFilter !== 'all') {
+      result = result.filter(v => {
+        if (v.age === null || v.age === undefined || v.age === '') return false;
+        const age = Number(v.age);
+        if (isNaN(age)) return false;
+
+        switch (activeAgeFilter) {
+          case '0-6':
+            return age >= 0 && age <= 6;
+          case '7-12':
+            return age >= 7 && age <= 12;
+          case '13-17':
+            return age >= 13 && age <= 17;
+          case '18-59':
+            return age >= 18 && age <= 59;
+          case '60+':
+            return age >= 60;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // 3. Filtro de Serviços
+    if (activeServiceFilter !== 'all') {
+      const targetServiceId = Number(activeServiceFilter);
+      const attendedQrCodes = new Set(
+        cachedAttendances
+          .filter(att => Number(att.service_id) === targetServiceId)
+          .map(att => Number(att.visitor_qr_code))
+      );
+      result = result.filter(v => attendedQrCodes.has(Number(v.qr_code)));
+    }
+
+    // 4. Filtro de Toggle / Tipo
+    if (activeTypeFilter !== 'all') {
+      if (activeTypeFilter === 'children') {
+        result = result.filter(v => Boolean(v.is_child));
+      } else if (activeTypeFilter === 'family') {
+        const guardianQrSet = new Set(
+          cachedVisitors
+            .filter(x => x.guardian_qr_code)
+            .map(x => Number(x.guardian_qr_code))
+        );
+        result = result.filter(v => Boolean(v.guardian_qr_code) || guardianQrSet.has(Number(v.qr_code)));
+      } else if (activeTypeFilter === 'adults') {
+        result = result.filter(v => !v.is_child);
+      }
+    }
+
+    const hasActiveFilters = query !== '' || activeAgeFilter !== 'all' || activeServiceFilter !== 'all' || activeTypeFilter !== 'all';
+    if (btnResetVisitorFilters) {
+      btnResetVisitorFilters.style.display = hasActiveFilters ? 'inline-flex' : 'none';
+    }
+
+    if (visitorCountBadge) {
+      visitorCountBadge.textContent = hasActiveFilters
+        ? `${result.length}/${cachedVisitors.length}`
+        : String(cachedVisitors.length);
+    }
+
+    renderVisitorList(result, hasActiveFilters);
+  }
+
+  function populateServiceFilterOptions(services) {
+    if (!visitorFilterService) return;
+    const currentVal = visitorFilterService.value;
+    visitorFilterService.innerHTML = '<option value="all">Todos os serviços</option>';
+    services.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = String(s.id);
+      opt.textContent = s.name;
+      visitorFilterService.appendChild(opt);
+    });
+    if (currentVal && services.some(s => String(s.id) === currentVal)) {
+      visitorFilterService.value = currentVal;
+      activeServiceFilter = currentVal;
+    } else {
+      visitorFilterService.value = 'all';
+      activeServiceFilter = 'all';
+    }
+  }
+
+  function resetAllFilters() {
+    if (visitorSearchInput) visitorSearchInput.value = '';
+    activeAgeFilter = 'all';
+    if (visitorFilterAge) visitorFilterAge.value = 'all';
+    activeServiceFilter = 'all';
+    if (visitorFilterService) visitorFilterService.value = 'all';
+    activeTypeFilter = 'all';
+    if (visitorTypePills) {
+      visitorTypePills.querySelectorAll('.visitor-pill-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.type === 'all');
+      });
+    }
+    applyVisitorFilters();
+  }
+
+  // Event Listeners dos Filtros
+  if (visitorFilterAge) {
+    visitorFilterAge.addEventListener('change', (e) => {
+      activeAgeFilter = e.target.value;
+      applyVisitorFilters();
+    });
+  }
+
+  if (visitorFilterService) {
+    visitorFilterService.addEventListener('change', (e) => {
+      activeServiceFilter = e.target.value;
+      applyVisitorFilters();
+    });
+  }
+
+  if (visitorTypePills) {
+    visitorTypePills.addEventListener('click', (e) => {
+      const btn = e.target.closest('.visitor-pill-btn');
+      if (!btn) return;
+      const type = btn.dataset.type;
+      if (!type) return;
+
+      activeTypeFilter = type;
+      visitorTypePills.querySelectorAll('.visitor-pill-btn').forEach(b => {
+        b.classList.toggle('active', b === btn);
+      });
+      applyVisitorFilters();
+    });
+  }
+
+  if (btnResetVisitorFilters) {
+    btnResetVisitorFilters.addEventListener('click', resetAllFilters);
   }
 
   // Listener de busca com debounce
   if (visitorSearchInput) {
     visitorSearchInput.addEventListener('input', () => {
       clearTimeout(visitorSearchDebounce);
-      visitorSearchDebounce = setTimeout(applyVisitorSearch, 300);
+      visitorSearchDebounce = setTimeout(applyVisitorFilters, 300);
     });
   }
 
@@ -850,17 +1296,27 @@ export function initVisitorView() {
       visitorsList.innerHTML = '<p style="color: var(--color-text-muted); font-size: var(--font-size-sm); text-align: center; padding: 1rem;">Selecione um evento para visualizar os visitantes cadastrados.</p>';
       if (visitorCountBadge) visitorCountBadge.textContent = '0';
       cachedVisitors = [];
+      cachedServices = [];
+      cachedAttendances = [];
+      populateServiceFilterOptions([]);
       return;
     }
 
-    const visitors = await getVisitorsByEventId(session.eventId);
-    cachedVisitors = visitors;
-    if (visitorCountBadge) visitorCountBadge.textContent = String(visitors.length);
+    try {
+      const [visitors, services, attendances] = await Promise.all([
+        getVisitorsByEventId(session.eventId),
+        getServicesByEventId(session.eventId),
+        getAttendancesByEventId(session.eventId)
+      ]);
+      cachedVisitors = visitors || [];
+      cachedServices = services || [];
+      cachedAttendances = attendances || [];
+      populateServiceFilterOptions(cachedServices);
+    } catch {
+      cachedVisitors = await getVisitorsByEventId(session.eventId);
+    }
 
-    // Limpa busca ao trocar contexto
-    if (visitorSearchInput) visitorSearchInput.value = '';
-
-    renderVisitorList(visitors);
+    applyVisitorFilters();
   }
 
   // Export refresh function for session changes
